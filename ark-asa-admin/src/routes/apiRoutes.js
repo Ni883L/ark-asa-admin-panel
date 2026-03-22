@@ -210,7 +210,47 @@ router.post('/tasks', (req, res) => {
   }
 });
 
-router.get('/versions', (_req, res) => res.json(versionService.getUpdateInfo()));
+router.get('/versions', (_req, res) => res.json({ ...versionService.getUpdateInfo(), panelBackups: rollbackService.listPanelBackups() }));
+router.get('/audit', (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json({ entries: auditService.listAuditLines(Number(req.query.limit || 200)) });
+  } catch (error) {
+    res.status(403).json({ error: error.message });
+  }
+});
+router.get('/users', (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json({ users: userAdminService.listUsers() });
+  } catch (error) {
+    res.status(403).json({ error: error.message });
+  }
+});
+router.post('/users', (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json({ ok: true, user: userAdminService.createUser(req.body || {}) });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+router.post('/users/:username', (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json({ ok: true, user: userAdminService.updateUser(req.params.username, req.body || {}) });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+router.delete('/users/:username', (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json(userAdminService.deleteUser(req.params.username));
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 router.get('/health', async (_req, res) => {
   try {
     res.json(await healthService.getHealth());
