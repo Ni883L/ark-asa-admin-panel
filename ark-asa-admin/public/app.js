@@ -1,82 +1,130 @@
-async function getJson(url, options = {}) {
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options
-  });
+let csrfToken = null;
+let currentConfig = 'GameUserSettings.ini';
 
+async function api(url, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (csrfToken) headers['x-csrf-token'] = csrfToken;
+  const response = await fetch(url, { ...options, headers });
   const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || 'Unbekannter Fehler');
-  }
+  if (!response.ok) throw new Error(data.error || 'Fehler');
   return data;
 }
 
-async function loadStatus() {
-  const status = await getJson('/api/status');
-  document.getElementById('status').textContent = `${status.serverName}: ${status.status}`;
+function show(viewId) {
+  for (const el of document.querySelectorAll('.view')) el.classList.add('hidden');
+  document.getElementById(viewId).classList.remove('hidden');
 }
 
-async function loadConfig() {
-  const config = await getJson('/api/config');
-  document.getElementById('config').textContent = JSON.stringify(config, null, 2);
+function renderStats(status, metrics) {
+  const target = document.getElementById('statusGrid');
+  const fields = {
+    Serverstatus: status.status || metrics.status || 'unknown',
+    Profil: status.activeProfile?.name || '-',
+    CPU: metrics.cpu || '-',
+    RAM: metrics.memory || '-',
+    Disk: metrics.disk || '-',
+    Ports: metrics.ports || '-',
+    Letzter Start: metrics.lastStart || '-',
+    Crashs: metrics.crashDetected || 'unknown'
+  };
+  target.innerHTML = Object.entries(fields).map(([k, v]) => `<div class="stat"><strong>${k}</strong><div>${v}</div></div>`).join('');
 }
 
-async function loadServerIni() {
-  const ini = await getJson('/api/server-ini');
-  if (!ini.exists) {
-    document.getElementById('serverIni').textContent = `Nicht gefunden: ${ini.path}`;
+function renderPlayers(players) {
+  const target = document.getElementById('players');
+  if (!players.length) {
+    target.innerHTML = '<p>Keine Spieler erkannt.</p>';
     return;
   }
-  document.getElementById('serverIni').textContent = ini.content;
+  target.innerHTML = `<div class="item-list">${players.map(player => `<div class="item"><strong>${player.name}</strong><div>ID: ${player.id || '-'}</div><div>Quelle: ${player.source}</div></div>`).join('')}</div>`;
 }
 
-async function loadLogs() {
-  const logs = await getJson('/api/logs?lines=200');
-  document.getElementById('logs').textContent = logs.log || '(leer)';
+function renderBackups(backups) {
+  const target = document.getElementById('backups');
+  target.innerHTML = `<div class="item-list">${backups.map(backup => `<div class="item"><strong>${backup.name}</strong><div>${backup.modifiedAt}</div><div>${backup.size} Bytes</div><button onclick="restoreBackup('${backup.name}')">Restore</button></div>`).join('')}</div>`;
 }
 
-async function runAction(action) {
-  if (action === 'refresh') {
-    await Promise.all([loadStatus(), loadConfig(), loadServerIni(), loadLogs()]);
+async function restoreBackup(name) {
+  if (!confirm(`Backup ${name} wirklich wiederherstellen?`)) return;
+  await api('/api/backups/restore', { method: 'POST', body: JSON.stringify({ name, mode: 'full' }) });
+  await refreshDashboard();
+}
+window.restoreBackup = restoreBackup;
+
+async function loadConfig(name = currentConfig) {
+  currentConfig = name;
+  const data = await api(`/api/config/${encodeURIComponent(name)}`);
+  document.getElementById('configEditor').value = data.content || '';
+}
+
+async function refreshDashboard() {
+  const data = await api('/api/dashboard');
+  renderStats(data.status, data.metrics);
+  renderPlayers(data.players);
+  renderBackups(data.backups);
+  document.getElementById('logs').textContent = data.logs || '(leer)';
+  document.getElementById('profilesEditor').value = JSON.stringify(await api('/api/profiles'), null, 2);
+  document.getElementById('settingsEditor').value = JSON.stringify(data.settings, null, 2);
+  await loadConfig(currentConfig);
+}
+
+async function bootstrapAuth() {
+  const me = await api('/auth/me');
+  if (!me.authenticated) {
+    show('loginView');
     return;
   }
+  csrfToken = me.csrfToken;
+  document.getElementById('welcome').textContent = `Angemeldet als ${me.user.username} (${me.user.role})`;
+  show('dashboardView');
+  await refreshDashboard();
+}
 
-  if (action === 'logs') {
-    await loadLogs();
-    return;
-  }
+document.getElementById('loginForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.target);
+  const result = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username: form.get('username'), password: form.get('password') }) });
+  csrfToken = result.user.csrfToken;
+  await bootstrapAuth();
+});
 
-  if (action === 'reboot-host') {
-    const confirmed = window.confirm('Wirklich das komplette Windows-System neu starten?');
-    if (!confirmed) {
-      return;
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await api('/auth/logout', { method: 'POST', body: JSON.stringify({}) });
+  csrfToken = null;
+  show('loginView');
+});
+
+document.getElementById('refreshBtn').addEventListener('click', refreshDashboard);
+document.getElementById('saveProfilesBtn').addEventListener('click', async () => {
+  await api('/api/profiles', { method: 'POST', body: document.getElementById('profilesEditor').value });
+  alert('Profile gespeichert.');
+});
+document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+  await api('/api/settings', { method: 'POST', body: document.getElementById('settingsEditor').value });
+  alert('Einstellungen gespeichert.');
+});
+document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+  await api(`/api/config/${encodeURIComponent(currentConfig)}`, { method: 'POST', body: JSON.stringify({ content: document.getElementById('configEditor').value }) });
+  alert('Config gespeichert.');
+});
+for (const button of document.querySelectorAll('[data-config]')) {
+  button.addEventListener('click', () => loadConfig(button.dataset.config));
+}
+for (const button of document.querySelectorAll('[data-action]')) {
+  button.addEventListener('click', async () => {
+    const action = button.dataset.action;
+    const dangerous = ['stop', 'restart', 'asa-update', 'panel-update', 'reboot-host'];
+    if (dangerous.includes(action) && !confirm(`Aktion ${action} wirklich ausführen?`)) return;
+    if (action === 'backup') {
+      await api('/api/backups/create', { method: 'POST', body: JSON.stringify({ type: 'manual' }) });
+    } else {
+      await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({}) });
     }
-  }
-
-  await getJson(`/api/${action}`, { method: 'POST' });
-  await loadStatus();
-}
-
-async function init() {
-  document.querySelectorAll('button[data-action]').forEach((button) => {
-    button.addEventListener('click', async () => {
-      const action = button.dataset.action;
-      button.disabled = true;
-      try {
-        await runAction(action);
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        button.disabled = false;
-      }
-    });
+    await refreshDashboard();
   });
-
-  try {
-    await Promise.all([loadStatus(), loadConfig(), loadServerIni(), loadLogs()]);
-  } catch (error) {
-    document.getElementById('status').textContent = `Fehler: ${error.message}`;
-  }
 }
 
-init();
+bootstrapAuth().catch((error) => {
+  console.error(error);
+  show('loginView');
+});

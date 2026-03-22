@@ -1,24 +1,14 @@
-param(
-  [string]$InstallPath = "C:\ark-asa-admin-panel",
-  [string]$Branch = "main"
-)
-
-$ErrorActionPreference = "Stop"
-
-if (-not (Test-Path $InstallPath)) {
-  throw "Installationspfad nicht gefunden: $InstallPath"
-}
-
+param([string]$InstallPath = (Split-Path -Parent $PSScriptRoot), [string]$Branch = 'master')
+$ErrorActionPreference = 'Stop'
 Set-Location $InstallPath
-
-if (-not (Test-Path ".git")) {
-  throw "Kein Git-Repository gefunden in $InstallPath"
-}
-
+$backupRoot = Join-Path $InstallPath 'runtime\backups\panel'
+New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$backup = Join-Path $backupRoot "panel-$stamp.zip"
+Compress-Archive -Path (Join-Path $InstallPath '*') -DestinationPath $backup -Force
+$previousCommit = (git rev-parse HEAD).Trim()
 git fetch origin
-
 git checkout $Branch
 git pull origin $Branch
 npm install
-
-Write-Output "Update abgeschlossen für $InstallPath"
+Write-Output "update complete from $previousCommit"
