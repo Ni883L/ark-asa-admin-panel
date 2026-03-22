@@ -135,7 +135,7 @@ router.post('/actions/restart', async (req, res) => {
 router.post('/actions/reboot-host', async (req, res) => {
   try {
     authService.requireRole(req, ['admin']);
-    const result = await asaService.rebootHost();
+    const result = await asaService.rebootHost(req.body || {});
     res.json({ ok: true, ...result });
   } catch (error) {
     res.status(500).json({ error: error.message });

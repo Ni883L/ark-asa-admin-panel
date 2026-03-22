@@ -89,9 +89,14 @@ async function restartServer() {
   return result;
 }
 
-async function rebootHost() {
-  const result = await powershell.run('reboot-host.ps1');
-  logger.audit('system', 'host-reboot');
+async function rebootHost(payload = {}) {
+  const actionPolicyService = require('./actionPolicyService');
+  actionPolicyService.requireConfirmation('reboot-host', payload);
+  const delaySeconds = Number(payload.delaySeconds || 0);
+  const result = delaySeconds > 0
+    ? await powershell.run('reboot-host-delayed.ps1', [String(delaySeconds)])
+    : await powershell.run('reboot-host.ps1');
+  logger.audit('system', 'host-reboot', { delaySeconds });
   return result;
 }
 

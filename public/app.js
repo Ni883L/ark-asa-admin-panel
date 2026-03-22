@@ -182,8 +182,12 @@ for (const button of document.querySelectorAll('[data-action]')) {
 
     if (action === 'backup') {
       await api('/api/backups/create', { method: 'POST', body: JSON.stringify({ type: 'manual' }) });
+    } else if (action === 'reboot-host') {
+      const delaySeconds = Number(document.getElementById('rebootDelay').value || 0);
+      await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({ confirm: true, delaySeconds }) });
     } else {
-      await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({}) });
+      const confirmPayload = ['asa-update', 'panel-update'].includes(action) ? { confirm: true } : {};
+      await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(confirmPayload) });
     }
 
     await refreshDashboard();
