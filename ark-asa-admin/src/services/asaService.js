@@ -4,9 +4,12 @@ const defaults = require('../config/defaults');
 const store = require('./store');
 const powershell = require('./powershell');
 const logger = require('./logger');
-const { sanitizeName, sanitizePort } = require('../util/validators');
+const runtimeGuardService = require('./runtimeGuardService');
+const { validateArkIni } = require('../util/ini');
+const { sanitizeName, sanitizePort, requireString } = require('../util/validators');
 
 function getProfileCommand(profile) {
+  if (!profile) return '';
   if (profile.rawCommandLine) return profile.rawCommandLine;
   const args = [];
   args.push(`${profile.map}?listen?SessionName=${profile.sessionName}`);
@@ -16,17 +19,22 @@ function getProfileCommand(profile) {
   if (profile.adminPassword) args.push(`ServerAdminPassword=${profile.adminPassword}`);
   if (profile.clusterId) args.push(`ClusterId=${profile.clusterId}`);
   const extra = (profile.extraArgs || '').trim();
-  return `\"${defaults.asa.exe}\" ${args.join('?')} ${extra}`.trim();
+  return `"${defaults.asa.exe}" ${args.join('?')} ${extra}`.trim();
 }
 
 function getProfileSummary() {
-  const data = store.getProfiles();
-  return data;
+  return store.getProfiles();
 }
 
 function saveProfiles(nextData) {
-  nextData.profiles = nextData.profiles.map(profile => ({
+  if (!nextData || !Array.isArray(nextData.profiles) || !nextData.profiles.length) {
+    throw new Error('Mindestens ein Serverprofil ist erforderlich.');
+  }
+
+  nextData.profiles = nextData.profiles.map((profile) => ({
     ...profile,
+    id: requireString(profile.id, 'Profil-ID'),
+    map: requireString(profile.map, 'Map'),
     name: sanitizeName(profile.name, 'Profilname'),
     sessionName: sanitizeName(profile.sessionName, 'SessionName'),
     ports: {
@@ -35,6 +43,7 @@ function saveProfiles(nextData) {
       rcon: sanitizePort(profile.ports.rcon, 'RCON-Port')
     }
   }));
+
   store.saveProfiles(nextData);
   logger.audit('system', 'save-profiles', { count: nextData.profiles.length });
   return nextData;
@@ -57,9 +66,11 @@ async function getStatus() {
 }
 
 async function startServer() {
+  const guard = runtimeGuardService.validateRuntimePaths();
+  if (!guard.ok) throw new Error(`Start abgebrochen: ${guard.errors.join(' | ')}`);
   const profile = store.getActiveProfile();
   const result = await powershell.run('start-server.ps1', [getProfileCommand(profile)]);
-  logger.audit('system', 'server-start');
+  logger.audit('system', 'server-start', { guard });
   return result;
 }
 
@@ -70,9 +81,11 @@ async function stopServer() {
 }
 
 async function restartServer() {
+  const guard = runtimeGuardService.validateRuntimePaths();
+  if (!guard.ok) throw new Error(`Restart abgebrochen: ${guard.errors.join(' | ')}`);
   const profile = store.getActiveProfile();
   const result = await powershell.run('restart-server.ps1', [getProfileCommand(profile)]);
-  logger.audit('system', 'server-restart');
+  logger.audit('system', 'server-restart', { guard });
   return result;
 }
 
@@ -113,5 +126,17 @@ async function selfUpdate() {
   return result;
 }
 
-module.exports = { getProfileSummary, saveProfiles, getStatus, startServer, stopServer, restartServer, rebootHost, readIni, writeIni, installOrUpdateServer, selfUpdate, getProfileCommand };
-tStatus, startServer, stopServer, restartServer, rebootHost, readIni, writeIni, installOrUpdateServer, selfUpdate, getProfileCommand };
+module.exports = {
+  getProfileSummary,
+  saveProfiles,
+  getStatus,
+  startServer,
+  stopServer,
+  restartServer,
+  rebootHost,
+  readIni,
+  writeIni,
+  installOrUpdateServer,
+  selfUpdate,
+  getProfileCommand
+};
