@@ -3,6 +3,7 @@ const path = require('path');
 const defaults = require('../config/defaults');
 const powershell = require('./powershell');
 const logger = require('./logger');
+const backupRetentionService = require('./backupRetentionService');
 
 function listBackups() {
   fs.mkdirSync(defaults.paths.backupDir, { recursive: true });
@@ -40,3 +41,4 @@ function importBackup(tempFilePath, originalName) {
 }
 
 module.exports = { listBackups, createBackup, restoreBackup, importBackup };
+ckup, importBackup };

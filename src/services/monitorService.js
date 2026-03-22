@@ -10,6 +10,7 @@ async function getMetrics() {
     const [key, ...rest] = line.split('=');
     parsed[key] = rest.join('=');
   }
+  parsed.portChecks = String(parsed.portsRaw || '').split(',').filter(Boolean);
   return parsed;
 }
 
