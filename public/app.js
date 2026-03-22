@@ -1,5 +1,6 @@
 let csrfToken = null;
 let currentConfig = 'GameUserSettings.ini';
+let bootstrapState = null;
 
 async function api(url, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
@@ -24,7 +25,7 @@ function renderStats(status, metrics) {
     RAM: metrics.memory || '-',
     Disk: metrics.disk || '-',
     Ports: metrics.ports || '-',
-    Letzter Start: metrics.lastStart || '-',
+    'Letzter Start': metrics.lastStart || '-',
     Crashs: metrics.crashDetected || 'unknown'
   };
   target.innerHTML = Object.entries(fields).map(([k, v]) => `<div class="stat"><strong>${k}</strong><div>${v}</div></div>`).join('');
@@ -58,13 +59,27 @@ async function loadConfig(name = currentConfig) {
 }
 
 async function refreshDashboard() {
-  const data = await api('/api/dashboard');
+  const [data, profiles, health, versions, tasks, users, audit] = await Promise.all([
+    api('/api/dashboard'),
+    api('/api/profiles'),
+    api('/api/health'),
+    api('/api/versions'),
+    api('/api/tasks'),
+    api('/api/users'),
+    api('/api/audit')
+  ]);
+
   renderStats(data.status, data.metrics);
   renderPlayers(data.players);
   renderBackups(data.backups);
   document.getElementById('logs').textContent = data.logs || '(leer)';
-  document.getElementById('profilesEditor').value = JSON.stringify(await api('/api/profiles'), null, 2);
+  document.getElementById('profilesEditor').value = JSON.stringify(profiles, null, 2);
   document.getElementById('settingsEditor').value = JSON.stringify(data.settings, null, 2);
+  document.getElementById('healthInfo').textContent = JSON.stringify(health, null, 2);
+  document.getElementById('versionInfo').textContent = JSON.stringify(versions, null, 2);
+  document.getElementById('tasksEditor').value = JSON.stringify(tasks.tasks || [], null, 2);
+  document.getElementById('usersInfo').textContent = JSON.stringify(users.users || [], null, 2);
+  document.getElementById('auditInfo').textContent = (audit.entries || []).join('\n');
   await loadConfig(currentConfig);
 }
 
@@ -74,8 +89,18 @@ async function bootstrapAuth() {
     show('loginView');
     return;
   }
+
   csrfToken = me.csrfToken;
   document.getElementById('welcome').textContent = `Angemeldet als ${me.user.username} (${me.user.role})`;
+  bootstrapState = await api('/api/bootstrap');
+
+  if (!bootstrapState.initialized) {
+    document.getElementById('wizardAsaPath').value = bootstrapState.defaults.asaRoot || '';
+    document.getElementById('wizardResult').textContent = JSON.stringify(bootstrapState.detection, null, 2);
+    show('wizardView');
+    return;
+  }
+
   show('dashboardView');
   await refreshDashboard();
 }
@@ -83,7 +108,10 @@ async function bootstrapAuth() {
 document.getElementById('loginForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = new FormData(event.target);
-  const result = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username: form.get('username'), password: form.get('password') }) });
+  const result = await api('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username: form.get('username'), password: form.get('password') })
+  });
   csrfToken = result.user.csrfToken;
   await bootstrapAuth();
 });
@@ -95,53 +123,69 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('detectServerBtn').addEventListener('click', async () => {
-  const result = await api('/api/detect-server', { method: 'POST', body: JSON.stringify({ path: document.getElementById('wizardAsaPath').value }) });
+  const result = await api('/api/detect-server', {
+    method: 'POST',
+    body: JSON.stringify({ path: document.getElementById('wizardAsaPath').value })
+  });
   document.getElementById('wizardResult').textContent = JSON.stringify(result, null, 2);
 });
+
 document.getElementById('completeWizardBtn').addEventListener('click', async () => {
-  await api('/api/bootstrap', { method: 'POST', body: JSON.stringify({ asaRoot: document.getElementById('wizardAsaPath').value, autoBackupBeforeUpdate: true, backupRetention: 14 }) });
+  await api('/api/bootstrap', {
+    method: 'POST',
+    body: JSON.stringify({
+      asaRoot: document.getElementById('wizardAsaPath').value,
+      autoBackupBeforeUpdate: true,
+      backupRetention: 14
+    })
+  });
   await bootstrapAuth();
 });
+
 document.getElementById('refreshBtn').addEventListener('click', refreshDashboard);
+
 document.getElementById('saveProfilesBtn').addEventListener('click', async () => {
   await api('/api/profiles', { method: 'POST', body: document.getElementById('profilesEditor').value });
   alert('Profile gespeichert.');
 });
+
 document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
   await api('/api/settings', { method: 'POST', body: document.getElementById('settingsEditor').value });
   alert('Einstellungen gespeichert.');
 });
+
 document.getElementById('saveTasksBtn').addEventListener('click', async () => {
-  await api('/api/tasks', { method: 'POST', body: JSON.stringify({ tasks: JSON.parse(document.getElementById('tasksEditor').value) }) });
+  await api('/api/tasks', {
+    method: 'POST',
+    body: JSON.stringify({ tasks: JSON.parse(document.getElementById('tasksEditor').value) })
+  });
   alert('Tasks gespeichert.');
 });
+
 document.getElementById('saveConfigBtn').addEventListener('click', async () => {
-  await api(`/api/config/${encodeURIComponent(currentConfig)}`, { method: 'POST', body: JSON.stringify({ content: document.getElementById('configEditor').value }) });
+  await api(`/api/config/${encodeURIComponent(currentConfig)}`, {
+    method: 'POST',
+    body: JSON.stringify({ content: document.getElementById('configEditor').value })
+  });
   alert('Config gespeichert.');
 });
+
 for (const button of document.querySelectorAll('[data-config]')) {
   button.addEventListener('click', () => loadConfig(button.dataset.config));
 }
+
 for (const button of document.querySelectorAll('[data-action]')) {
   button.addEventListener('click', async () => {
     const action = button.dataset.action;
     const dangerous = ['stop', 'restart', 'asa-update', 'panel-update', 'reboot-host'];
     if (dangerous.includes(action) && !confirm(`Aktion ${action} wirklich ausführen?`)) return;
+
     if (action === 'backup') {
       await api('/api/backups/create', { method: 'POST', body: JSON.stringify({ type: 'manual' }) });
     } else {
       await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({}) });
     }
-    await refreshDashboard();
-  });
-}
 
-bootstrapAuth().catch((error) => {
-  console.error(error);
-  show('loginView');
-});
-body: JSON.stringify({}) });
-    }
     await refreshDashboard();
   });
 }
