@@ -94,6 +94,14 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   show('loginView');
 });
 
+document.getElementById('detectServerBtn').addEventListener('click', async () => {
+  const result = await api('/api/detect-server', { method: 'POST', body: JSON.stringify({ path: document.getElementById('wizardAsaPath').value }) });
+  document.getElementById('wizardResult').textContent = JSON.stringify(result, null, 2);
+});
+document.getElementById('completeWizardBtn').addEventListener('click', async () => {
+  await api('/api/bootstrap', { method: 'POST', body: JSON.stringify({ asaRoot: document.getElementById('wizardAsaPath').value, autoBackupBeforeUpdate: true, backupRetention: 14 }) });
+  await bootstrapAuth();
+});
 document.getElementById('refreshBtn').addEventListener('click', refreshDashboard);
 document.getElementById('saveProfilesBtn').addEventListener('click', async () => {
   await api('/api/profiles', { method: 'POST', body: document.getElementById('profilesEditor').value });
