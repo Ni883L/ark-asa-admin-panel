@@ -10,6 +10,10 @@ const backupService = require('../services/backupService');
 const monitorService = require('../services/monitorService');
 const webhookService = require('../services/webhookService');
 const logger = require('../services/logger');
+const setupService = require('../services/setupService');
+const schedulerService = require('../services/schedulerService');
+const healthService = require('../services/healthService');
+const versionService = require('../services/versionService');
 
 const router = express.Router();
 
@@ -23,9 +27,9 @@ router.use((req, res, next) => {
 });
 
 router.get('/bootstrap', (_req, res) => {
-  const settings = store.getSettings();
+  const wizard = setupService.getWizardState();
   res.json({
-    initialized: !!settings.initialized,
+    ...wizard,
     appName: defaults.app.name,
     host: os.hostname(),
     version: require('../../package.json').version
@@ -35,8 +39,7 @@ router.get('/bootstrap', (_req, res) => {
 router.post('/bootstrap', (req, res) => {
   try {
     authService.requireRole(req, ['admin']);
-    const settings = { ...store.getSettings(), ...req.body, initialized: true };
-    store.saveSettings(settings);
+    const settings = setupService.completeWizard(req.body || {});
     res.json({ ok: true, settings });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -197,7 +200,24 @@ router.post('/settings', (req, res) => {
   }
 });
 
-router.get('/health', (_req, res) => res.json({ ok: true }));
+router.get('/tasks', (_req, res) => res.json({ tasks: schedulerService.listTasks() }));
+router.post('/tasks', (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json({ ok: true, tasks: schedulerService.saveTasks(req.body.tasks || []) });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.get('/versions', (_req, res) => res.json(versionService.getUpdateInfo()));
+router.get('/health', async (_req, res) => {
+  try {
+    res.json(await healthService.getHealth());
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 router.use((error, _req, res, _next) => {
   logger.error('API failure', { error: error.message });
   res.status(500).json({ error: 'Interner Serverfehler.' });

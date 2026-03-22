@@ -111,6 +111,10 @@ document.getElementById('saveSettingsBtn').addEventListener('click', async () =>
   await api('/api/settings', { method: 'POST', body: document.getElementById('settingsEditor').value });
   alert('Einstellungen gespeichert.');
 });
+document.getElementById('saveTasksBtn').addEventListener('click', async () => {
+  await api('/api/tasks', { method: 'POST', body: JSON.stringify({ tasks: JSON.parse(document.getElementById('tasksEditor').value) }) });
+  alert('Tasks gespeichert.');
+});
 document.getElementById('saveConfigBtn').addEventListener('click', async () => {
   await api(`/api/config/${encodeURIComponent(currentConfig)}`, { method: 'POST', body: JSON.stringify({ content: document.getElementById('configEditor').value }) });
   alert('Config gespeichert.');
@@ -127,6 +131,16 @@ for (const button of document.querySelectorAll('[data-action]')) {
       await api('/api/backups/create', { method: 'POST', body: JSON.stringify({ type: 'manual' }) });
     } else {
       await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({}) });
+    }
+    await refreshDashboard();
+  });
+}
+
+bootstrapAuth().catch((error) => {
+  console.error(error);
+  show('loginView');
+});
+body: JSON.stringify({}) });
     }
     await refreshDashboard();
   });
