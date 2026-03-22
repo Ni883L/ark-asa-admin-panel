@@ -26,9 +26,13 @@ async function createBackup(type = 'manual') {
 async function restoreBackup(name, mode = 'full') {
   const file = path.join(defaults.paths.backupDir, name);
   if (!fs.existsSync(file)) throw new Error('Backup nicht gefunden.');
+  if (!['full', 'save', 'config', 'cluster'].includes(mode)) {
+    throw new Error('Ungültiger Restore-Modus.');
+  }
+  const preRestore = await createBackup('pre-restore');
   const result = await powershell.run('backup-restore.ps1', [file, mode]);
-  logger.audit('system', 'backup-restore', { name, mode });
-  return result;
+  logger.audit('system', 'backup-restore', { name, mode, preRestore: preRestore.stdout || null });
+  return { ...result, preRestore: preRestore.stdout || null };
 }
 
 function importBackup(tempFilePath, originalName) {
