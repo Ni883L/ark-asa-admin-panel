@@ -7,50 +7,89 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="container">
-      <h1>ARK ASA Admin Panel</h1>
-      <p class="subtitle">Windows-first Webverwaltung für deinen ASA-Server</p>
-
-      <section class="card">
-        <h2>Status</h2>
-        <div id="status">Lade…</div>
-        <div class="actions">
-          <button data-action="refresh">Aktualisieren</button>
-          <button data-action="start">Server starten</button>
-          <button data-action="stop">Server stoppen</button>
-          <button data-action="restart">Server neu starten</button>
-          <button data-action="reboot-host" class="danger">Windows neu starten</button>
+    <div id="app">
+      <section id="loginView" class="view centered">
+        <div class="card login-card">
+          <h1>ARK ASA Admin Panel</h1>
+          <p>Windows-Webverwaltung für ARK: Survival Ascended</p>
+          <form id="loginForm">
+            <label>Benutzername<input name="username" autocomplete="username" required /></label>
+            <label>Passwort<input name="password" type="password" autocomplete="current-password" required /></label>
+            <button type="submit">Anmelden</button>
+          </form>
+          <p class="hint">Standard beim ersten Start: <code>admin</code> / <code>admin123!ChangeNow</code></p>
         </div>
       </section>
 
-      <section class="card">
-        <h2>Konfiguration</h2>
-        <pre id="config">Lade…</pre>
-      </section>
+      <section id="dashboardView" class="view hidden">
+        <header class="topbar">
+          <div>
+            <h1>ARK ASA Admin Panel</h1>
+            <p id="welcome"></p>
+          </div>
+          <div class="topbar-actions">
+            <button id="refreshBtn">Aktualisieren</button>
+            <button id="logoutBtn" class="secondary">Logout</button>
+          </div>
+        </header>
 
-      <section class="card">
-        <h2>GameUserSettings.ini</h2>
-        <pre id="serverIni">Lade…</pre>
-      </section>
+        <main class="grid">
+          <section class="card span-2">
+            <h2>Dashboard</h2>
+            <div id="statusGrid" class="stats"></div>
+            <div class="actions">
+              <button data-action="start">Start</button>
+              <button data-action="stop" class="warn">Stop</button>
+              <button data-action="restart">Restart</button>
+              <button data-action="asa-update">ASA-Update</button>
+              <button data-action="panel-update">Panel-Update</button>
+              <button data-action="backup">Backup</button>
+              <button data-action="reboot-host" class="danger">Windows neu starten</button>
+            </div>
+          </section>
 
-      <section class="card">
-        <h2>Logs</h2>
-        <button data-action="logs">Logs neu laden</button>
-        <pre id="logs">Lade…</pre>
-      </section>
+          <section class="card">
+            <h2>Spieler</h2>
+            <div id="players"></div>
+          </section>
 
-      <section class="card">
-        <h2>Deployment</h2>
-        <p>Install-Oneliner und Update-Skript sind im Projekt enthalten.</p>
-        <pre id="deployInfo">Siehe INSTALL_ONELINER.txt und scripts/update.ps1</pre>
-      </section>
+          <section class="card span-2">
+            <h2>Profile & Startparameter</h2>
+            <textarea id="profilesEditor" rows="14"></textarea>
+            <button id="saveProfilesBtn">Profile speichern</button>
+          </section>
 
-      <section class="card">
-        <h2>RCON</h2>
-        <p>Noch nicht implementiert, aber als nächster Ausbauschritt vorgesehen.</p>
-      </section>
-    </main>
+          <section class="card">
+            <h2>Backups</h2>
+            <div id="backups"></div>
+          </section>
 
+          <section class="card span-2">
+            <h2>Konfigurationen</h2>
+            <div class="tabs">
+              <button data-config="GameUserSettings.ini">GameUserSettings.ini</button>
+              <button data-config="Game.ini">Game.ini</button>
+              <button data-config="Engine.ini">Engine.ini</button>
+            </div>
+            <textarea id="configEditor" rows="16"></textarea>
+            <div class="actions">
+              <button id="saveConfigBtn">Config speichern</button>
+            </div>
+          </section>
+
+          <section class="card span-2">
+            <h2>Logs</h2>
+            <pre id="logs"></pre>
+          </section>
+
+          <section class="card">
+            <h2>Einstellungen</h2>
+            <textarea id="settingsEditor" rows="12"></textarea>
+            <button id="saveSettingsBtn">Einstellungen speichern</button>
+          </section>
+        </main>
+      </section>
+    </div>
     <script src="/app.js"></script>
   </body>
 </html>
