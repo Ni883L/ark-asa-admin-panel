@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARK ASA Admin Panel</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>ARK ASA Admin Panel</h1>
+      <p class="subtitle">Windows-first Webverwaltung für deinen ASA-Server</p>
+
+      <section class="card">
+        <h2>Status</h2>
+        <div id="status">Lade…</div>
+        <div class="actions">
+          <button data-action="refresh">Aktualisieren</button>
+          <button data-action="start">Server starten</button>
+          <button data-action="stop">Server stoppen</button>
+          <button data-action="restart">Server neu starten</button>
+          <button data-action="reboot-host" class="danger">Windows neu starten</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Konfiguration</h2>
+        <pre id="config">Lade…</pre>
+      </section>
+
+      <section class="card">
+        <h2>GameUserSettings.ini</h2>
+        <pre id="serverIni">Lade…</pre>
+      </section>
+
+      <section class="card">
+        <h2>Logs</h2>
+        <button data-action="logs">Logs neu laden</button>
+        <pre id="logs">Lade…</pre>
+      </section>
+
+      <section class="card">
+        <h2>Deployment</h2>
+        <p>Install-Oneliner und Update-Skript sind im Projekt enthalten.</p>
+        <pre id="deployInfo">Siehe INSTALL_ONELINER.txt und scripts/update.ps1</pre>
+      </section>
+
+      <section class="card">
+        <h2>RCON</h2>
+        <p>Noch nicht implementiert, aber als nächster Ausbauschritt vorgesehen.</p>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
