@@ -22,17 +22,9 @@ function bootstrap() {
     activeProfileId: 'default',
     profiles: [
       {
+        ...createProfile(),
         id: 'default',
-        name: 'Standardserver',
-        map: 'TheIsland_WP',
-        sessionName: 'ASA Server',
-        ports: { game: 7777, query: 27015, rcon: 27020 },
-        adminPassword: '',
-        serverPassword: '',
-        clusterId: '',
-        extraArgs: '',
-        rawCommandLine: '',
-        autoRestart: false
+        name: 'Standardserver'
       }
     ]
   }, null, 2));
@@ -58,6 +50,14 @@ function getProfiles() { return readJson(defaults.files.profiles, { activeProfil
 function saveProfiles(data) { writeJson(defaults.files.profiles, data); }
 function getUsers() { return readJson(defaults.files.users, { users: [], loginAttempts: {}, blockedIps: {} }); }
 function saveUsers(data) { writeJson(defaults.files.users, data); }
+
+function getActiveProfile() {
+  const data = getProfiles();
+  return data.profiles.find(profile => profile.id === data.activeProfileId) || data.profiles[0] || null;
+}
+
+module.exports = { bootstrap, getSettings, saveSettings, getProfiles, saveProfiles, getUsers, saveUsers, getActiveProfile };
+es.users, data); }
 
 function getActiveProfile() {
   const data = getProfiles();

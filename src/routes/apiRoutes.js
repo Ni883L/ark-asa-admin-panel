@@ -90,6 +90,15 @@ router.post('/config/:name', (req, res) => {
   }
 });
 
+router.post('/detect-server', (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json(setupService.detectServerRoot(req.body.path));
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 router.post('/actions/start', async (_req, res) => {
   try {
     authService.requireRole(_req, ['admin']);

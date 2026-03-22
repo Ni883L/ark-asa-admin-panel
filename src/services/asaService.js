@@ -89,6 +89,7 @@ function readIni(filename) {
 }
 
 function writeIni(filename, content) {
+  const validation = validateArkIni(content);
   const file = path.join(defaults.asa.configDir, filename);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   if (fs.existsSync(file)) {
@@ -96,8 +97,8 @@ function writeIni(filename, content) {
     fs.copyFileSync(file, backup);
   }
   fs.writeFileSync(file, content, 'utf8');
-  logger.audit('system', 'write-ini', { file });
-  return { ok: true, file };
+  logger.audit('system', 'write-ini', { file, warnings: validation.warnings.length });
+  return { ok: true, file, warnings: validation.warnings };
 }
 
 async function installOrUpdateServer() {
@@ -113,3 +114,4 @@ async function selfUpdate() {
 }
 
 module.exports = { getProfileSummary, saveProfiles, getStatus, startServer, stopServer, restartServer, rebootHost, readIni, writeIni, installOrUpdateServer, selfUpdate, getProfileCommand };
+tStatus, startServer, stopServer, restartServer, rebootHost, readIni, writeIni, installOrUpdateServer, selfUpdate, getProfileCommand };

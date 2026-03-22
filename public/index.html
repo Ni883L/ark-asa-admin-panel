@@ -21,6 +21,19 @@
         </div>
       </section>
 
+      <section id="wizardView" class="view hidden">
+        <div class="card span-2">
+          <h2>Ersteinrichtung</h2>
+          <p>Pfad prüfen, ASA-Dateien erkennen und Grundeinstellungen speichern.</p>
+          <label>ASA-Serverpfad<input id="wizardAsaPath" placeholder="C:\ARK\ASA" /></label>
+          <div class="actions">
+            <button id="detectServerBtn">Server erkennen</button>
+            <button id="completeWizardBtn">Einrichtung abschließen</button>
+          </div>
+          <pre id="wizardResult"></pre>
+        </div>
+      </section>
+
       <section id="dashboardView" class="view hidden">
         <header class="topbar">
           <div>
