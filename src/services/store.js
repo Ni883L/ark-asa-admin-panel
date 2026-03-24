@@ -1,7 +1,7 @@
-const path = require('path');
 const defaults = require('../config/defaults');
 const { ensureDir, ensureFile, readJson, writeJson } = require('../util/fsx');
 const { hashPassword } = require('../util/passwords');
+const { createProfile } = require('../util/profileDefaults');
 
 function bootstrap() {
   ensureDir(defaults.paths.dataDir);
@@ -50,14 +50,6 @@ function getProfiles() { return readJson(defaults.files.profiles, { activeProfil
 function saveProfiles(data) { writeJson(defaults.files.profiles, data); }
 function getUsers() { return readJson(defaults.files.users, { users: [], loginAttempts: {}, blockedIps: {} }); }
 function saveUsers(data) { writeJson(defaults.files.users, data); }
-
-function getActiveProfile() {
-  const data = getProfiles();
-  return data.profiles.find(profile => profile.id === data.activeProfileId) || data.profiles[0] || null;
-}
-
-module.exports = { bootstrap, getSettings, saveSettings, getProfiles, saveProfiles, getUsers, saveUsers, getActiveProfile };
-es.users, data); }
 
 function getActiveProfile() {
   const data = getProfiles();

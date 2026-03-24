@@ -14,6 +14,9 @@ const setupService = require('../services/setupService');
 const schedulerService = require('../services/schedulerService');
 const healthService = require('../services/healthService');
 const versionService = require('../services/versionService');
+const rollbackService = require('../services/rollbackService');
+const auditService = require('../services/auditService');
+const userAdminService = require('../services/userAdminService');
 
 const router = express.Router();
 
