@@ -1,7 +1,7 @@
 param(
   [string]$RepoUrl = 'https://github.com/Ni883L/ark-asa-admin-panel.git',
   [string]$InstallPath = 'C:\ark-asa-admin-panel',
-  [string]$Branch = 'master',
+  [string]$Branch = 'main',
   [switch]$CreateStartupTask
 )
 $ErrorActionPreference = 'Stop'
