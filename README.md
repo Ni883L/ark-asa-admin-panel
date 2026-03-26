@@ -91,7 +91,18 @@ npm start
 ```
 
 ### One-Click-Installation
-Siehe `INSTALL_ONELINER.txt`.
+**Empfohlener Oneliner (PowerShell als Administrator):**
+```powershell
+powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1 -UseBasicParsing | iex"
+```
+
+Alternative (Script lokal speichern und mit Parametern ausführen):
+```powershell
+iwr https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1 -OutFile .\install.ps1
+.\install.ps1 -InstallPath 'C:\ark-asa-admin' -Branch 'main' -CreateStartupTask
+```
+
+Der gleiche Oneliner liegt auch in `INSTALL_ONELINER.txt`.
 
 ## One-Click-Installer
 Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeichnisse, erzeugt eine `.env` und kann optional einen Windows-Starttask anlegen.
