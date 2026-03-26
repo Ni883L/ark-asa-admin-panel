@@ -6,11 +6,106 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$script:IsGerman = ([System.Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName -eq 'de')
+$script:GitCommand = $null
+$script:NodeCommand = $null
+$script:NpmCommand = $null
 
-function Require-Command([string]$Name, [string]$Label = $Name) {
-  if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-    throw "$Label ist nicht installiert."
+function T([string]$German, [string]$English) {
+  if ($script:IsGerman) { return $German }
+  return $English
+}
+
+function Test-CommandAvailable([string]$Name) {
+  return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
+}
+
+function Resolve-CommandPath([string]$Name) {
+  $cmd = Get-Command $Name -ErrorAction SilentlyContinue
+  if ($cmd -and $cmd.Path) {
+    return $cmd.Path
   }
+
+  $candidates = switch ($Name.ToLowerInvariant()) {
+    'git' { @(
+      "${env:ProgramFiles}\Git\cmd\git.exe",
+      "${env:ProgramFiles}\Git\bin\git.exe"
+    ) }
+    'node' { @(
+      "${env:ProgramFiles}\nodejs\node.exe"
+    ) }
+    'npm' { @(
+      "${env:ProgramFiles}\nodejs\npm.cmd"
+    ) }
+    default { @() }
+  }
+
+  foreach ($candidate in $candidates) {
+    if ($candidate -and (Test-Path $candidate)) {
+      return $candidate
+    }
+  }
+  return $null
+}
+
+function Install-DependencyWithWinget([string]$WingetId, [string]$Label) {
+  Write-Host (T "Installiere $Label ueber winget..." "Installing $Label via winget...")
+  & winget install --id $WingetId -e --accept-package-agreements --accept-source-agreements
+}
+
+function Refresh-ProcessPath() {
+  $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+  $user = [Environment]::GetEnvironmentVariable('Path', 'User')
+  $combined = @($machine, $user) -join ';'
+  if ($combined) {
+    $env:Path = $combined
+  }
+}
+
+function Ensure-Dependencies() {
+  $dependencies = @(
+    @{ Name = 'git'; Label = 'Git'; WingetId = 'Git.Git' },
+    @{ Name = 'node'; Label = 'Node.js'; WingetId = 'OpenJS.NodeJS.LTS' },
+    @{ Name = 'npm'; Label = 'npm'; WingetId = 'OpenJS.NodeJS.LTS' }
+  )
+
+  $missing = @($dependencies | Where-Object { -not (Resolve-CommandPath $_.Name) })
+  if (-not $missing.Count) {
+    $script:GitCommand = Resolve-CommandPath 'git'
+    $script:NodeCommand = Resolve-CommandPath 'node'
+    $script:NpmCommand = Resolve-CommandPath 'npm'
+    return
+  }
+
+  Write-Warning (T "Fehlende Abhaengigkeiten: $(($missing | ForEach-Object { $_.Label }) -join ', ')" "Missing dependencies: $(($missing | ForEach-Object { $_.Label }) -join ', ')")
+  if (-not (Test-CommandAvailable 'winget')) {
+    throw (T "winget ist nicht verfuegbar. Bitte installiere die fehlenden Abhaengigkeiten manuell und starte das Setup erneut." "winget is not available. Please install missing dependencies manually and rerun setup.")
+  }
+
+  $answer = Read-Host (T "Fehlende Abhaengigkeiten jetzt automatisch installieren? [J/n]" "Install missing dependencies automatically now? [Y/n]")
+  if ($answer -and $answer.ToLowerInvariant() -notin @('j', 'ja', 'y', 'yes')) {
+    throw (T "Setup abgebrochen. Bitte installiere zuerst: $(($missing | ForEach-Object { $_.Label }) -join ', ')" "Setup aborted. Please install first: $(($missing | ForEach-Object { $_.Label }) -join ', ')")
+  }
+
+  $toInstall = @($missing | Group-Object WingetId | ForEach-Object { $_.Group[0] })
+  foreach ($dep in $toInstall) {
+    Install-DependencyWithWinget $dep.WingetId $dep.Label
+  }
+
+  Refresh-ProcessPath
+  $stillMissing = @($dependencies | Where-Object { -not (Resolve-CommandPath $_.Name) })
+  if ($stillMissing.Count) {
+    throw (T "Installation unvollstaendig. Weiterhin fehlend: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Bitte neues Terminal oeffnen und Setup erneut starten." "Installation incomplete. Still missing: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Please open a new terminal and rerun setup.")
+  }
+
+  $script:GitCommand = Resolve-CommandPath 'git'
+  $script:NodeCommand = Resolve-CommandPath 'node'
+  $script:NpmCommand = Resolve-CommandPath 'npm'
+}
+
+function Test-RemoteBranchExists([string]$BranchName) {
+  & $script:GitCommand ls-remote --exit-code --heads origin $BranchName *> $null
+  return ($LASTEXITCODE -eq 0)
 }
 
 function New-RandomSecret([int]$Bytes = 32) {
@@ -19,9 +114,7 @@ function New-RandomSecret([int]$Bytes = 32) {
   return [Convert]::ToBase64String($buffer)
 }
 
-Require-Command git 'Git'
-Require-Command node 'Node.js'
-Require-Command npm 'npm'
+Ensure-Dependencies
 
 $installPathExists = Test-Path $InstallPath
 $gitDir = Join-Path $InstallPath '.git'
@@ -29,7 +122,7 @@ $gitDir = Join-Path $InstallPath '.git'
 if ($installPathExists -and -not (Test-Path $gitDir)) {
   $entries = Get-ChildItem -Force -Path $InstallPath -ErrorAction SilentlyContinue
   if ($entries -and $entries.Count -gt 0) {
-    throw "Installationspfad existiert bereits und ist kein Git-Repo: $InstallPath"
+    throw (T "Installationspfad existiert bereits und ist kein Git-Repo: $InstallPath" "Install path already exists and is not a Git repository: $InstallPath")
   }
 }
 
@@ -38,18 +131,20 @@ if (-not $installPathExists) {
 }
 
 if (-not (Test-Path $gitDir)) {
-  git clone --branch $Branch $RepoUrl $InstallPath
+  & $script:GitCommand clone --branch $Branch $RepoUrl $InstallPath
 }
 
 Set-Location $InstallPath
 
-git fetch origin
-if (git show-ref --verify --quiet "refs/remotes/origin/$Branch") {
-  git checkout $Branch
-  git reset --hard "origin/$Branch"
+& $script:GitCommand fetch origin
+if (Test-RemoteBranchExists $Branch) {
+  & $script:GitCommand checkout $Branch
+  & $script:GitCommand reset --hard "origin/$Branch"
+} else {
+  throw (T "Remote-Branch '$Branch' wurde nicht gefunden." "Remote branch '$Branch' was not found.")
 }
 
-npm install
+& $script:NpmCommand install
 
 if (-not (Test-Path '.env') -and (Test-Path '.env.example')) {
   Copy-Item '.env.example' '.env'
@@ -75,4 +170,4 @@ if ($CreateStartupTask) {
   Register-ScheduledTask -TaskName 'ArkAsaAdminPanel' -Action $action -Trigger $trigger -RunLevel Highest -Force | Out-Null
 }
 
-Write-Output "Installation abgeschlossen: $InstallPath"
+Write-Output (T "Installation abgeschlossen: $InstallPath" "Installation completed: $InstallPath")
