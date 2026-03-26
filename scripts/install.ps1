@@ -12,8 +12,17 @@ function Test-CommandAvailable([string]$Name) {
 }
 
 function Install-DependencyWithWinget([string]$WingetId, [string]$Label) {
-  Write-Host "Installiere $Label über winget..."
+  Write-Host "Installiere $Label ueber winget..."
   & winget install --id $WingetId -e --accept-package-agreements --accept-source-agreements
+}
+
+function Refresh-ProcessPath() {
+  $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+  $user = [Environment]::GetEnvironmentVariable('Path', 'User')
+  $combined = @($machine, $user) -join ';'
+  if ($combined) {
+    $env:Path = $combined
+  }
 }
 
 function Ensure-Dependencies() {
@@ -28,23 +37,25 @@ function Ensure-Dependencies() {
     return
   }
 
-  Write-Warning ("Fehlende Abhängigkeiten: " + (($missing | ForEach-Object { $_.Label }) -join ', '))
+  Write-Warning ("Fehlende Abhaengigkeiten: " + (($missing | ForEach-Object { $_.Label }) -join ', '))
   if (-not (Test-CommandAvailable 'winget')) {
-    throw "winget ist nicht verfügbar. Bitte installiere die fehlenden Abhängigkeiten manuell und starte das Setup erneut."
+    throw "winget ist nicht verfuegbar. Bitte installiere die fehlenden Abhaengigkeiten manuell und starte das Setup erneut."
   }
 
-  $answer = Read-Host "Fehlende Abhängigkeiten jetzt automatisch installieren? [J/n]"
+  $answer = Read-Host "Fehlende Abhaengigkeiten jetzt automatisch installieren? [J/n]"
   if ($answer -and $answer.ToLowerInvariant() -notin @('j', 'ja', 'y', 'yes')) {
     throw "Setup abgebrochen. Bitte installiere zuerst: $(($missing | ForEach-Object { $_.Label }) -join ', ')"
   }
 
-  foreach ($dep in $missing) {
+  $toInstall = @($missing | Group-Object WingetId | ForEach-Object { $_.Group[0] })
+  foreach ($dep in $toInstall) {
     Install-DependencyWithWinget $dep.WingetId $dep.Label
   }
 
+  Refresh-ProcessPath
   $stillMissing = @($dependencies | Where-Object { -not (Test-CommandAvailable $_.Name) })
   if ($stillMissing.Count) {
-    throw "Installation unvollständig. Weiterhin fehlend: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Öffne ein neues Terminal und starte das Setup erneut."
+    throw "Installation unvollstaendig. Weiterhin fehlend: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Bitte neues Terminal oeffnen und Setup erneut starten."
   }
 }
 
