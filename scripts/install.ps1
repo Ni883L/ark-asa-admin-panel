@@ -103,6 +103,52 @@ function Ensure-Dependencies() {
   $script:NpmCommand = Resolve-CommandPath 'npm'
 }
 
+function Test-RemoteBranchExists([string]$BranchName) {
+  & $script:GitCommand ls-remote --exit-code --heads origin $BranchName *> $null
+  return ($LASTEXITCODE -eq 0)
+}
+
+function Ensure-Dependencies() {
+  $dependencies = @(
+    @{ Name = 'git'; Label = 'Git'; WingetId = 'Git.Git' },
+    @{ Name = 'node'; Label = 'Node.js'; WingetId = 'OpenJS.NodeJS.LTS' },
+    @{ Name = 'npm'; Label = 'npm'; WingetId = 'OpenJS.NodeJS.LTS' }
+  )
+
+  $missing = @($dependencies | Where-Object { -not (Resolve-CommandPath $_.Name) })
+  if (-not $missing.Count) {
+    $script:GitCommand = Resolve-CommandPath 'git'
+    $script:NodeCommand = Resolve-CommandPath 'node'
+    $script:NpmCommand = Resolve-CommandPath 'npm'
+    return
+  }
+
+  Write-Warning (T "Fehlende Abhaengigkeiten: $(($missing | ForEach-Object { $_.Label }) -join ', ')" "Missing dependencies: $(($missing | ForEach-Object { $_.Label }) -join ', ')")
+  if (-not (Test-CommandAvailable 'winget')) {
+    throw (T "winget ist nicht verfuegbar. Bitte installiere die fehlenden Abhaengigkeiten manuell und starte das Setup erneut." "winget is not available. Please install missing dependencies manually and rerun setup.")
+  }
+
+  $answer = Read-Host (T "Fehlende Abhaengigkeiten jetzt automatisch installieren? [J/n]" "Install missing dependencies automatically now? [Y/n]")
+  if ($answer -and $answer.ToLowerInvariant() -notin @('j', 'ja', 'y', 'yes')) {
+    throw (T "Setup abgebrochen. Bitte installiere zuerst: $(($missing | ForEach-Object { $_.Label }) -join ', ')" "Setup aborted. Please install first: $(($missing | ForEach-Object { $_.Label }) -join ', ')")
+  }
+
+  $toInstall = @($missing | Group-Object WingetId | ForEach-Object { $_.Group[0] })
+  foreach ($dep in $toInstall) {
+    Install-DependencyWithWinget $dep.WingetId $dep.Label
+  }
+
+  Refresh-ProcessPath
+  $stillMissing = @($dependencies | Where-Object { -not (Resolve-CommandPath $_.Name) })
+  if ($stillMissing.Count) {
+    throw (T "Installation unvollstaendig. Weiterhin fehlend: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Bitte neues Terminal oeffnen und Setup erneut starten." "Installation incomplete. Still missing: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Please open a new terminal and rerun setup.")
+  }
+
+  $script:GitCommand = Resolve-CommandPath 'git'
+  $script:NodeCommand = Resolve-CommandPath 'node'
+  $script:NpmCommand = Resolve-CommandPath 'npm'
+}
+
 function New-RandomSecret([int]$Bytes = 32) {
   $buffer = New-Object byte[] $Bytes
   [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($buffer)
@@ -132,7 +178,7 @@ if (-not (Test-Path $gitDir)) {
 Set-Location $InstallPath
 
 & $script:GitCommand fetch origin
-if (& $script:GitCommand show-ref --verify --quiet "refs/remotes/origin/$Branch") {
+if (Test-RemoteBranchExists $Branch) {
   & $script:GitCommand checkout $Branch
   & $script:GitCommand reset --hard "origin/$Branch"
 } else {
