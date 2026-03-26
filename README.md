@@ -104,7 +104,7 @@ iwr https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/in
 
 Der gleiche Oneliner liegt auch in `INSTALL_ONELINER.txt`.
 
-Hinweis: Das Install-Skript prüft `git`, `node` und `npm` und bietet bei fehlenden Abhängigkeiten einen kurzen Dialog zur automatischen Installation per `winget`.
+Hinweis: Das Install-Skript prueft `git`, `node` und `npm`, bietet bei fehlenden Abhaengigkeiten einen kurzen Dialog zur automatischen Installation per `winget` und waehlt die Sprache automatisch (Deutsch bei deutschem System, sonst Englisch).
 
 ## One-Click-Installer
 Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeichnisse, erzeugt eine `.env` und kann optional einen Windows-Starttask anlegen.
