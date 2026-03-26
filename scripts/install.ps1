@@ -7,15 +7,44 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-function Require-Command([string]$Name, [string]$Label = $Name) {
-  if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-    $hint = switch ($Name.ToLowerInvariant()) {
-      'git' { "Bitte installiere Git (z. B. mit `winget install --id Git.Git -e`) und starte das Setup erneut." }
-      'node' { "Bitte installiere Node.js LTS (z. B. mit `winget install OpenJS.NodeJS.LTS`) und starte das Setup erneut." }
-      'npm' { "npm fehlt. Bitte prüfe deine Node.js-Installation und starte das Setup erneut." }
-      default { "$Label ist nicht installiert." }
-    }
-    throw "$Label ist nicht installiert. $hint"
+function Test-CommandAvailable([string]$Name) {
+  return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
+}
+
+function Install-DependencyWithWinget([string]$WingetId, [string]$Label) {
+  Write-Host "Installiere $Label über winget..."
+  & winget install --id $WingetId -e --accept-package-agreements --accept-source-agreements
+}
+
+function Ensure-Dependencies() {
+  $dependencies = @(
+    @{ Name = 'git'; Label = 'Git'; WingetId = 'Git.Git' },
+    @{ Name = 'node'; Label = 'Node.js'; WingetId = 'OpenJS.NodeJS.LTS' },
+    @{ Name = 'npm'; Label = 'npm'; WingetId = 'OpenJS.NodeJS.LTS' }
+  )
+
+  $missing = @($dependencies | Where-Object { -not (Test-CommandAvailable $_.Name) })
+  if (-not $missing.Count) {
+    return
+  }
+
+  Write-Warning ("Fehlende Abhängigkeiten: " + (($missing | ForEach-Object { $_.Label }) -join ', '))
+  if (-not (Test-CommandAvailable 'winget')) {
+    throw "winget ist nicht verfügbar. Bitte installiere die fehlenden Abhängigkeiten manuell und starte das Setup erneut."
+  }
+
+  $answer = Read-Host "Fehlende Abhängigkeiten jetzt automatisch installieren? [J/n]"
+  if ($answer -and $answer.ToLowerInvariant() -notin @('j', 'ja', 'y', 'yes')) {
+    throw "Setup abgebrochen. Bitte installiere zuerst: $(($missing | ForEach-Object { $_.Label }) -join ', ')"
+  }
+
+  foreach ($dep in $missing) {
+    Install-DependencyWithWinget $dep.WingetId $dep.Label
+  }
+
+  $stillMissing = @($dependencies | Where-Object { -not (Test-CommandAvailable $_.Name) })
+  if ($stillMissing.Count) {
+    throw "Installation unvollständig. Weiterhin fehlend: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Öffne ein neues Terminal und starte das Setup erneut."
   }
 }
 
@@ -25,9 +54,7 @@ function New-RandomSecret([int]$Bytes = 32) {
   return [Convert]::ToBase64String($buffer)
 }
 
-Require-Command git 'Git'
-Require-Command node 'Node.js'
-Require-Command npm 'npm'
+Ensure-Dependencies
 
 $installPathExists = Test-Path $InstallPath
 $gitDir = Join-Path $InstallPath '.git'
