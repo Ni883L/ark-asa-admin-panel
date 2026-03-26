@@ -47,6 +47,8 @@ git fetch origin
 if (git show-ref --verify --quiet "refs/remotes/origin/$Branch") {
   git checkout $Branch
   git reset --hard "origin/$Branch"
+} else {
+  throw "Remote-Branch '$Branch' wurde nicht gefunden."
 }
 
 npm install

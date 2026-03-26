@@ -1,5 +1,5 @@
 const fs = require('fs');
-const path = require('path');
+const { spawnSync } = require('child_process');
 const pkg = require('../../package.json');
 const defaults = require('../config/defaults');
 
@@ -17,10 +17,36 @@ function getServerBuildInfo() {
 }
 
 function getUpdateInfo() {
+  const current = getPanelVersion();
+  const latest = getLatestPanelVersion();
   return {
-    panel: { current: getPanelVersion(), latest: 'unknown' },
+    panel: {
+      current,
+      latest,
+      updateAvailable: latest !== 'unknown' && latest !== current
+    },
     server: getServerBuildInfo()
   };
 }
 
-module.exports = { getPanelVersion, getServerBuildInfo, getUpdateInfo };
+function runGit(args) {
+  const result = spawnSync('git', args, { encoding: 'utf8', timeout: 5000 });
+  if (result.status !== 0) return null;
+  return String(result.stdout || '').trim();
+}
+
+function getLatestPanelVersion() {
+  const localTag = runGit(['describe', '--tags', '--abbrev=0']);
+  const remoteTag = runGit(['ls-remote', '--tags', '--sort=-v:refname', 'origin']);
+  if (remoteTag) {
+    const line = remoteTag.split(/\r?\n/).find(Boolean);
+    if (line) {
+      const ref = line.split(/\s+/)[1] || '';
+      const tag = ref.replace('refs/tags/', '').replace(/\^\{\}$/, '').trim();
+      if (tag) return tag;
+    }
+  }
+  return localTag || 'unknown';
+}
+
+module.exports = { getPanelVersion, getServerBuildInfo, getUpdateInfo, getLatestPanelVersion };
