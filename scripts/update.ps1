@@ -1,4 +1,4 @@
-param([string]$InstallPath = (Split-Path -Parent $PSScriptRoot), [string]$Branch = 'master')
+param([string]$InstallPath = (Split-Path -Parent $PSScriptRoot), [string]$Branch = 'main')
 $ErrorActionPreference = 'Stop'
 Set-Location $InstallPath
 $backupRoot = Join-Path $InstallPath 'runtime\backups\panel'

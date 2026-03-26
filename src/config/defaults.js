@@ -22,6 +22,8 @@ module.exports = {
   security: {
     enableRemoteAccess: bool(process.env.ENABLE_REMOTE_ACCESS, false),
     allowedIps: (process.env.ALLOWED_IPS || '').split(',').map(v => v.trim()).filter(Boolean),
+    loginWhitelistIps: (process.env.LOGIN_WHITELIST_IPS || '').split(',').map(v => v.trim()).filter(Boolean),
+    loginWhitelistLocal: bool(process.env.LOGIN_WHITELIST_LOCAL, true),
     loginMaxAttempts: Number(process.env.LOGIN_MAX_ATTEMPTS || 5),
     loginBlockMinutes: Number(process.env.LOGIN_BLOCK_MINUTES || 15),
     loginWindowMinutes: Number(process.env.LOGIN_WINDOW_MINUTES || 15)
