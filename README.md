@@ -2,6 +2,8 @@
 
 Produktionsnahe Web-Adminverwaltung für **ARK: Survival Ascended Dedicated Server** auf **Windows**.
 
+> Ausführliche Architekturentscheidung: `docs/ARCHITEKTUR_ENTSCHEIDUNG_DE.md`
+
 ## Architekturentscheidung
 
 ### Gewählter Stack
@@ -108,6 +110,14 @@ Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeic
 - Ergebnis protokollieren
 - optional geplanter Check per Windows Task Scheduler
 
+### Geplante Aufgaben (integriert)
+- Task-Typen: `backup`, `asa-update`, `panel-update`, `reboot-host`
+- Zeitformat in `cronLike`:
+  - `every:30m` (alle 30 Minuten)
+  - `daily:04:30` (täglich 04:30)
+- Runtime-Status inkl. `lastRunAt` / `nextRunAt`: `GET /api/tasks/runtime`
+- Task sofort manuell ausführen: `POST /api/tasks/:id/run`
+
 ## Backup / Restore
 - Komprimierte ZIP-Backups
 - Sicherung von Savegames, Configs, Clusterdaten und optional Logs
@@ -121,6 +131,7 @@ Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeic
 - Session-Timeout
 - CSRF-Token für Schreibzugriffe
 - Rate-Limit / Sperrlogik für fehlgeschlagene Logins
+- optionale Whitelist für lokale/vertrauenswürdige IPs (`LOGIN_WHITELIST_LOCAL`, `LOGIN_WHITELIST_IPS`)
 - Audit-Log für sensible Aktionen
 - restriktive Default-Header (CSP, X-Frame-Options, etc.)
 - keine Klartextpasswörter in Logs
@@ -133,6 +144,8 @@ ASA_SERVER_ROOT=C:\ARK\ASA
 ASA_SERVER_EXE=C:\ARK\ASA\ShooterGame\Binaries\Win64\ArkAscendedServer.exe
 ASA_LOG_PATH=C:\ARK\ASA\ShooterGame\Saved\Logs\ShooterGame.log
 ASA_CONFIG_DIR=C:\ARK\ASA\ShooterGame\Saved\Config\WindowsServer
+LOGIN_WHITELIST_LOCAL=true
+LOGIN_WHITELIST_IPS=192.168.1.10
 ```
 
 ### Remote-Zugriff per Reverse Proxy
@@ -140,6 +153,7 @@ ASA_CONFIG_DIR=C:\ARK\ASA\ShooterGame\Saved\Config\WindowsServer
 - Reverse Proxy mit TLS davor
 - `TRUST_PROXY=1`
 - starke Passwörter und IP-Einschränkungen setzen
+- `TRUST_PROXY` nur aktivieren, wenn der Reverse Proxy tatsächlich vor der App sitzt
 
 ## Zukunft / Erweiterungen
 - echte RCON-Webkonsole
