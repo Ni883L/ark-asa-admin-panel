@@ -9,7 +9,13 @@ $ErrorActionPreference = 'Stop'
 
 function Require-Command([string]$Name, [string]$Label = $Name) {
   if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-    throw "$Label ist nicht installiert."
+    $hint = switch ($Name.ToLowerInvariant()) {
+      'git' { "Bitte installiere Git (z. B. mit `winget install --id Git.Git -e`) und starte das Setup erneut." }
+      'node' { "Bitte installiere Node.js LTS (z. B. mit `winget install OpenJS.NodeJS.LTS`) und starte das Setup erneut." }
+      'npm' { "npm fehlt. Bitte prüfe deine Node.js-Installation und starte das Setup erneut." }
+      default { "$Label ist nicht installiert." }
+    }
+    throw "$Label ist nicht installiert. $hint"
   }
 }
 
@@ -47,6 +53,8 @@ git fetch origin
 if (git show-ref --verify --quiet "refs/remotes/origin/$Branch") {
   git checkout $Branch
   git reset --hard "origin/$Branch"
+} else {
+  throw "Remote-Branch '$Branch' wurde nicht gefunden."
 }
 
 npm install
