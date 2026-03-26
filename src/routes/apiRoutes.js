@@ -12,6 +12,7 @@ const webhookService = require('../services/webhookService');
 const logger = require('../services/logger');
 const setupService = require('../services/setupService');
 const schedulerService = require('../services/schedulerService');
+const schedulerRunnerService = require('../services/schedulerRunnerService');
 const healthService = require('../services/healthService');
 const versionService = require('../services/versionService');
 const rollbackService = require('../services/rollbackService');
@@ -186,6 +187,15 @@ router.post('/backups/restore', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+router.post('/backups/validate', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const result = await backupService.validateBackup(req.body.name);
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 
 router.get('/logs', (req, res) => {
   res.json({ log: monitorService.getRecentLogs(Number(req.query.lines || 200)) });
@@ -204,10 +214,19 @@ router.post('/settings', (req, res) => {
 });
 
 router.get('/tasks', (_req, res) => res.json({ tasks: schedulerService.listTasks() }));
+router.get('/tasks/runtime', (_req, res) => res.json({ tasks: schedulerRunnerService.listRuntime() }));
 router.post('/tasks', (req, res) => {
   try {
     authService.requireRole(req, ['admin']);
     res.json({ ok: true, tasks: schedulerService.saveTasks(req.body.tasks || []) });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+router.post('/tasks/:id/run', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json(await schedulerRunnerService.runTaskNow(req.params.id));
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

@@ -13,6 +13,7 @@ const { headers, ipFilter, csrf } = require('./middleware/security');
 const { attachSessionUser } = require('./middleware/sessionUser');
 const authRoutes = require('./routes/authRoutes');
 const apiRoutes = require('./routes/apiRoutes');
+const schedulerRunnerService = require('./services/schedulerRunnerService');
 
 store.bootstrap();
 
@@ -48,5 +49,15 @@ const server = defaults.app.httpsEnabled
 
 server.listen(defaults.app.port, defaults.app.host, () => {
   logger.info('Server started', { host: defaults.app.host, port: defaults.app.port });
+  schedulerRunnerService.start();
   console.log(`${defaults.app.name} läuft auf ${defaults.app.httpsEnabled ? 'https' : 'http'}://${defaults.app.host}:${defaults.app.port}`);
 });
+
+function shutdown(signal) {
+  schedulerRunnerService.stop();
+  logger.info('Server shutdown', { signal });
+  process.exit(0);
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
