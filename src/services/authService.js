@@ -13,10 +13,47 @@ function cleanAttempts(bucket) {
 }
 
 function getClientIp(req) {
-  return (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim();
+  const forwarded = (req.headers?.['x-forwarded-for'] || '').toString().split(',')[0].trim();
+  const direct = (req.socket?.remoteAddress || '').toString().trim();
+  const raw = defaults.app.trustProxy ? (forwarded || direct) : direct;
+  return normalizeIp(raw);
+}
+
+function normalizeIp(ip) {
+  const value = String(ip || '').trim();
+  if (!value) return '';
+  const withoutMapped = value.replace('::ffff:', '');
+  if (withoutMapped.startsWith('[') && withoutMapped.includes(']:')) {
+    return withoutMapped.slice(1, withoutMapped.indexOf(']:'));
+  }
+  if (/^\d+\.\d+\.\d+\.\d+:\d+$/.test(withoutMapped)) {
+    return withoutMapped.split(':')[0];
+  }
+  return withoutMapped;
+}
+
+function isLocalIp(ip) {
+  if (!ip) return false;
+  const normalized = normalizeIp(ip);
+  if (normalized === '::1' || normalized === '127.0.0.1') return true;
+  if (normalized.startsWith('10.')) return true;
+  if (normalized.startsWith('192.168.')) return true;
+  if (normalized.startsWith('172.')) {
+    const second = Number(normalized.split('.')[1] || -1);
+    if (second >= 16 && second <= 31) return true;
+  }
+  return false;
+}
+
+function isWhitelistedIp(ip) {
+  const normalized = normalizeIp(ip);
+  if (!normalized) return false;
+  if (defaults.security.loginWhitelistLocal && isLocalIp(normalized)) return true;
+  return defaults.security.loginWhitelistIps.includes(normalized);
 }
 
 function ensureNotBlocked(ip) {
+  if (isWhitelistedIp(ip)) return;
   const data = store.getUsers();
   const blockUntil = data.blockedIps[ip];
   if (blockUntil && blockUntil > nowMs()) {
@@ -29,6 +66,7 @@ function ensureNotBlocked(ip) {
 }
 
 function recordFailedAttempt(ip) {
+  if (isWhitelistedIp(ip)) return;
   const data = store.getUsers();
   const attempts = cleanAttempts(data.loginAttempts[ip] || []);
   attempts.push(nowMs());
@@ -95,4 +133,4 @@ function changePassword(req, currentPassword, newPassword) {
   logger.audit(sessionUser.username, 'change-password');
 }
 
-module.exports = { login, logout, requireAuth, requireRole, changePassword, getClientIp };
+module.exports = { login, logout, requireAuth, requireRole, changePassword, getClientIp, isWhitelistedIp, isLocalIp, normalizeIp };
