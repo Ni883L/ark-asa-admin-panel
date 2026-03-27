@@ -10,6 +10,7 @@ $script:IsGerman = ([System.Globalization.CultureInfo]::CurrentUICulture.TwoLett
 $script:GitCommand = $null
 $script:NodeCommand = $null
 $script:NpmCommand = $null
+$script:IsInstallPathUserProvided = $PSBoundParameters.ContainsKey('InstallPath')
 
 function T([string]$German, [string]$English) {
   if ($script:IsGerman) { return $German }
@@ -45,6 +46,7 @@ function Resolve-CommandPath([string]$Name) {
       return $candidate
     }
   }
+
   return $null
 }
 
@@ -103,50 +105,50 @@ function Ensure-Dependencies() {
   $script:NpmCommand = Resolve-CommandPath 'npm'
 }
 
+
+
+function Resolve-InstallPath([string]$CurrentInstallPath) {
+  if ($script:IsInstallPathUserProvided) {
+    return [System.IO.Path]::GetFullPath($CurrentInstallPath)
+  }
+
+  $useDifferentPathAnswer = Read-Host (T "Standard-Installationspfad ist '$CurrentInstallPath'. Anderen Pfad waehlen? [j/N]" "Default install path is '$CurrentInstallPath'. Choose a different path? [y/N]")
+  if ($useDifferentPathAnswer -and $useDifferentPathAnswer.ToLowerInvariant() -in @('j', 'ja', 'y', 'yes')) {
+    $customPath = Read-Host (T "Bitte Installationspfad eingeben" "Please enter the install path")
+    if (-not $customPath) {
+      throw (T "Kein Installationspfad angegeben." "No install path provided.")
+    }
+
+    return [System.IO.Path]::GetFullPath($customPath)
+  }
+
+  return [System.IO.Path]::GetFullPath($CurrentInstallPath)
+}
+
 function Test-RemoteBranchExists([string]$BranchName) {
   & $script:GitCommand ls-remote --exit-code --heads origin $BranchName *> $null
   return ($LASTEXITCODE -eq 0)
 }
 
-function Ensure-Dependencies() {
-  $dependencies = @(
-    @{ Name = 'git'; Label = 'Git'; WingetId = 'Git.Git' },
-    @{ Name = 'node'; Label = 'Node.js'; WingetId = 'OpenJS.NodeJS.LTS' },
-    @{ Name = 'npm'; Label = 'npm'; WingetId = 'OpenJS.NodeJS.LTS' }
-  )
-
-  $missing = @($dependencies | Where-Object { -not (Resolve-CommandPath $_.Name) })
-  if (-not $missing.Count) {
-    $script:GitCommand = Resolve-CommandPath 'git'
-    $script:NodeCommand = Resolve-CommandPath 'node'
-    $script:NpmCommand = Resolve-CommandPath 'npm'
-    return
+function Ensure-FreeDiskSpace([string]$TargetPath, [int]$MinFreeGb) {
+  $resolvedPath = [System.IO.Path]::GetFullPath($TargetPath)
+  $root = [System.IO.Path]::GetPathRoot($resolvedPath)
+  if (-not $root) {
+    throw (T "Konnte Laufwerk fuer Installationspfad nicht ermitteln: $TargetPath" "Unable to determine drive for install path: $TargetPath")
   }
 
-  Write-Warning (T "Fehlende Abhaengigkeiten: $(($missing | ForEach-Object { $_.Label }) -join ', ')" "Missing dependencies: $(($missing | ForEach-Object { $_.Label }) -join ', ')")
-  if (-not (Test-CommandAvailable 'winget')) {
-    throw (T "winget ist nicht verfuegbar. Bitte installiere die fehlenden Abhaengigkeiten manuell und starte das Setup erneut." "winget is not available. Please install missing dependencies manually and rerun setup.")
+  $driveName = $root.TrimEnd('\\').TrimEnd(':')
+  $drive = Get-PSDrive -Name $driveName -PSProvider FileSystem -ErrorAction SilentlyContinue
+  if (-not $drive) {
+    throw (T "Konnte freigegebenen Speicher auf Laufwerk $root nicht pruefen." "Unable to check free disk space on drive $root.")
   }
 
-  $answer = Read-Host (T "Fehlende Abhaengigkeiten jetzt automatisch installieren? [J/n]" "Install missing dependencies automatically now? [Y/n]")
-  if ($answer -and $answer.ToLowerInvariant() -notin @('j', 'ja', 'y', 'yes')) {
-    throw (T "Setup abgebrochen. Bitte installiere zuerst: $(($missing | ForEach-Object { $_.Label }) -join ', ')" "Setup aborted. Please install first: $(($missing | ForEach-Object { $_.Label }) -join ', ')")
+  $freeGb = [Math]::Floor($drive.Free / 1GB)
+  if ($freeGb -lt $MinFreeGb) {
+    throw (T "Zu wenig freier Speicher auf $root. Verfuegbar: $freeGb GB, benoetigt: mindestens $MinFreeGb GB." "Not enough free disk space on $root. Available: $freeGb GB, required: at least $MinFreeGb GB.")
   }
 
-  $toInstall = @($missing | Group-Object WingetId | ForEach-Object { $_.Group[0] })
-  foreach ($dep in $toInstall) {
-    Install-DependencyWithWinget $dep.WingetId $dep.Label
-  }
-
-  Refresh-ProcessPath
-  $stillMissing = @($dependencies | Where-Object { -not (Resolve-CommandPath $_.Name) })
-  if ($stillMissing.Count) {
-    throw (T "Installation unvollstaendig. Weiterhin fehlend: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Bitte neues Terminal oeffnen und Setup erneut starten." "Installation incomplete. Still missing: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Please open a new terminal and rerun setup.")
-  }
-
-  $script:GitCommand = Resolve-CommandPath 'git'
-  $script:NodeCommand = Resolve-CommandPath 'node'
-  $script:NpmCommand = Resolve-CommandPath 'npm'
+  Write-Host (T "Freier Speicher geprueft: $freeGb GB auf $root (Minimum: $MinFreeGb GB)." "Free disk space check passed: $freeGb GB on $root (minimum: $MinFreeGb GB).")
 }
 
 function New-RandomSecret([int]$Bytes = 32) {
@@ -156,6 +158,8 @@ function New-RandomSecret([int]$Bytes = 32) {
 }
 
 Ensure-Dependencies
+$InstallPath = Resolve-InstallPath $InstallPath
+Ensure-FreeDiskSpace -TargetPath $InstallPath -MinFreeGb 2
 
 $installPathExists = Test-Path $InstallPath
 $gitDir = Join-Path $InstallPath '.git'
@@ -172,7 +176,7 @@ if (-not $installPathExists) {
 }
 
 if (-not (Test-Path $gitDir)) {
-  & $script:GitCommand clone --branch $Branch $RepoUrl $InstallPath
+  & $script:GitCommand clone --depth 1 --branch $Branch $RepoUrl $InstallPath
 }
 
 Set-Location $InstallPath
@@ -185,7 +189,7 @@ if (Test-RemoteBranchExists $Branch) {
   throw (T "Remote-Branch '$Branch' wurde nicht gefunden." "Remote branch '$Branch' was not found.")
 }
 
-& $script:NpmCommand install
+& $script:NpmCommand install --omit=dev --no-audit --no-fund
 
 if (-not (Test-Path '.env') -and (Test-Path '.env.example')) {
   Copy-Item '.env.example' '.env'
@@ -211,4 +215,8 @@ if ($CreateStartupTask) {
   Register-ScheduledTask -TaskName 'ArkAsaAdminPanel' -Action $action -Trigger $trigger -RunLevel Highest -Force | Out-Null
 }
 
+$defaultUrl = 'http://127.0.0.1:3000'
 Write-Output (T "Installation abgeschlossen: $InstallPath" "Installation completed: $InstallPath")
+Write-Output (T "Installationsort: $InstallPath" "Install location: $InstallPath")
+Write-Output (T "Starten: cd '$InstallPath' und npm start" "Start: cd '$InstallPath' and npm start")
+Write-Output (T "Konfiguration im Browser: $defaultUrl (beim ersten Start /setup)." "Open configuration website in browser: $defaultUrl (first start uses /setup).")
