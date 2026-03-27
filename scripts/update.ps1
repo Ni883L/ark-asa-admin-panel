@@ -66,6 +66,52 @@ function New-MinimalPanelBackup([string]$InstallPath, [string]$BackupRoot, [stri
   }
 }
 
+
+function Get-EnvSettings([string]$EnvFilePath) {
+  $settings = @{}
+  if (-not (Test-Path $EnvFilePath)) {
+    return $settings
+  }
+
+  foreach ($line in Get-Content $EnvFilePath) {
+    if (-not $line -or $line.StartsWith('#') -or -not $line.Contains('=')) {
+      continue
+    }
+
+    $parts = $line -split '=', 2
+    $settings[$parts[0].Trim()] = $parts[1].Trim()
+  }
+
+  return $settings
+}
+
+function Resolve-PanelConnection([hashtable]$EnvSettings) {
+  $port = 3000
+  if ($EnvSettings.ContainsKey('PORT')) {
+    $parsedPort = 0
+    if ([int]::TryParse($EnvSettings['PORT'], [ref]$parsedPort) -and $parsedPort -gt 0) {
+      $port = $parsedPort
+    }
+  }
+
+  $host = '127.0.0.1'
+  if ($EnvSettings.ContainsKey('HOST') -and $EnvSettings['HOST']) {
+    $configuredHost = $EnvSettings['HOST']
+    if ($configuredHost -notin @('0.0.0.0', '::')) {
+      $host = $configuredHost
+    }
+  }
+
+  $httpsEnabled = $false
+  if ($EnvSettings.ContainsKey('HTTPS_ENABLED')) {
+    $httpsEnabled = $EnvSettings['HTTPS_ENABLED'] -in @('1', 'true', 'True')
+  }
+
+  $scheme = if ($httpsEnabled) { 'https' } else { 'http' }
+  $url = "${scheme}://${host}:$port"
+  return @{ Url = $url }
+}
+
 Ensure-FreeDiskSpace -TargetPath $InstallPath -MinFreeGb 1
 
 Set-Location $InstallPath
@@ -81,6 +127,7 @@ git pull origin $Branch
 npm install --omit=dev --no-audit --no-fund
 Write-Output "update complete from $previousCommit"
 Write-Output "minimal backup created: $backup"
+$panelConnection = Resolve-PanelConnection (Get-EnvSettings (Join-Path $InstallPath '.env'))
 Write-Output "Install location: $InstallPath"
 Write-Output "Start panel with: cd '$InstallPath' ; npm start"
-Write-Output "Configuration website: http://127.0.0.1:3000"
+Write-Output "Configuration website: $($panelConnection.Url)"

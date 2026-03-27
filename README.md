@@ -109,8 +109,21 @@ Hinweis: Das Install-Skript
 - uebernimmt den gewaehlten Installationspfad im kompletten Installationsablauf (Clone, Abhaengigkeiten, Startup-Task, Start-/URL-Hinweise),
 - prueft vor der Installation den verfuegbaren Speicherplatz (mind. 2 GB frei),
 - prueft `git`, `node` und `npm`, bietet bei fehlenden Abhaengigkeiten einen kurzen Dialog zur automatischen Installation per `winget`,
-- installiert nur die produktiven Node-Abhaengigkeiten (`npm install --omit=dev`) und
-- gibt nach der Installation den Startbefehl sowie die Konfigurations-Website aus (`http://127.0.0.1:3000`, erster Start ueber `/setup`).
+- installiert nur die produktiven Node-Abhaengigkeiten (`npm install --omit=dev`),
+- bietet am Ende den direkten Start des Panels an (mit Erreichbarkeitscheck auf `127.0.0.1`) und
+- gibt nach der Installation den Startbefehl sowie die Konfigurations-Website basierend auf `.env` aus (Schema/Host/Port aus `HTTPS_ENABLED`, `HOST`, `PORT`; erster Start ueber `/setup`).
+
+
+### Troubleshooting: "127.0.0.1 hat die Verbindung verweigert"
+
+1. Installer-Ausgabe pruefen, ob der Panel-Prozess gestartet wurde.
+2. Falls nicht gestartet oder nicht erreichbar: manuell starten mit:
+   ```powershell
+   cd C:\ark-asa-admin
+   npm start
+   ```
+3. HTTP/HTTPS pruefen: `HTTPS_ENABLED=1` => `https://...`, sonst `http://...`; dazu `HOST` und `PORT` in `.env` kontrollieren.
+4. Fuer Remote-Zugriff in `.env` `HOST=0.0.0.0` setzen und Firewall-Port freigeben.
 
 ## One-Click-Installer
 Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeichnisse, erzeugt eine `.env` und kann optional einen Windows-Starttask anlegen.

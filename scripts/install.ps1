@@ -151,6 +151,79 @@ function Ensure-FreeDiskSpace([string]$TargetPath, [int]$MinFreeGb) {
   Write-Host (T "Freier Speicher geprueft: $freeGb GB auf $root (Minimum: $MinFreeGb GB)." "Free disk space check passed: $freeGb GB on $root (minimum: $MinFreeGb GB).")
 }
 
+
+function Get-EnvSettings([string]$EnvFilePath) {
+  $settings = @{}
+  if (-not (Test-Path $EnvFilePath)) {
+    return $settings
+  }
+
+  foreach ($line in Get-Content $EnvFilePath) {
+    if (-not $line -or $line.StartsWith('#') -or -not $line.Contains('=')) {
+      continue
+    }
+
+    $parts = $line -split '=', 2
+    $settings[$parts[0].Trim()] = $parts[1].Trim()
+  }
+
+  return $settings
+}
+
+function Resolve-PanelConnection([hashtable]$EnvSettings) {
+  $port = 3000
+  if ($EnvSettings.ContainsKey('PORT')) {
+    $parsedPort = 0
+    if ([int]::TryParse($EnvSettings['PORT'], [ref]$parsedPort) -and $parsedPort -gt 0) {
+      $port = $parsedPort
+    }
+  }
+
+  $host = '127.0.0.1'
+  if ($EnvSettings.ContainsKey('HOST') -and $EnvSettings['HOST']) {
+    $configuredHost = $EnvSettings['HOST']
+    if ($configuredHost -notin @('0.0.0.0', '::')) {
+      $host = $configuredHost
+    }
+  }
+
+  $httpsEnabled = $false
+  if ($EnvSettings.ContainsKey('HTTPS_ENABLED')) {
+    $httpsEnabled = $EnvSettings['HTTPS_ENABLED'] -in @('1', 'true', 'True')
+  }
+
+  $scheme = if ($httpsEnabled) { 'https' } else { 'http' }
+  $url = "${scheme}://${host}:$port"
+  return @{ Host = $host; Port = $port; HttpsEnabled = $httpsEnabled; Url = $url }
+}
+
+function Test-TcpPortOpen([string]$Host, [int]$Port, [int]$TimeoutMs = 4000) {
+  $client = New-Object System.Net.Sockets.TcpClient
+  try {
+    $async = $client.BeginConnect($Host, $Port, $null, $null)
+    if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
+      return $false
+    }
+
+    $client.EndConnect($async)
+    return $true
+  }
+  catch {
+    return $false
+  }
+  finally {
+    $client.Close()
+  }
+}
+
+function Start-PanelNow([string]$InstallPath, [string]$NodeCommand, [string]$Host, [int]$Port) {
+  $process = Start-Process -FilePath $NodeCommand -ArgumentList 'src/server.js' -WorkingDirectory $InstallPath -WindowStyle Hidden -PassThru
+  Start-Sleep -Seconds 3
+
+  $portOpen = Test-TcpPortOpen -Host $Host -Port $Port
+  return @{ Process = $process; PortOpen = $portOpen }
+}
+
 function New-RandomSecret([int]$Bytes = 32) {
   $buffer = New-Object byte[] $Bytes
   [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($buffer)
@@ -215,8 +288,23 @@ if ($CreateStartupTask) {
   Register-ScheduledTask -TaskName 'ArkAsaAdminPanel' -Action $action -Trigger $trigger -RunLevel Highest -Force | Out-Null
 }
 
-$defaultUrl = 'http://127.0.0.1:3000'
+
+$envSettings = Get-EnvSettings (Join-Path $InstallPath '.env')
+$panelConnection = Resolve-PanelConnection $envSettings
+$defaultUrl = $panelConnection.Url
+$startAnswer = Read-Host (T "Panel jetzt direkt starten? [J/n]" "Start panel now? [Y/n]")
+if (-not $startAnswer -or $startAnswer.ToLowerInvariant() -in @('j', 'ja', 'y', 'yes')) {
+  $startResult = Start-PanelNow -InstallPath $InstallPath -NodeCommand $script:NodeCommand -Host $panelConnection.Host -Port $panelConnection.Port
+  if ($startResult.PortOpen) {
+    Write-Output (T "Panel wurde gestartet (PID: $($startResult.Process.Id)). Port $($panelConnection.Port) ist erreichbar." "Panel started (PID: $($startResult.Process.Id)). Port $($panelConnection.Port) is reachable.")
+  } else {
+    Write-Warning (T "Panel-Prozess gestartet, aber Port $($panelConnection.Port) ist nicht erreichbar. Bitte pruefe mit 'cd '$InstallPath'; npm start'." "Panel process started, but port $($panelConnection.Port) is not reachable yet. Please verify with 'cd '$InstallPath'; npm start'.")
+  }
+}
+
 Write-Output (T "Installation abgeschlossen: $InstallPath" "Installation completed: $InstallPath")
 Write-Output (T "Installationsort: $InstallPath" "Install location: $InstallPath")
 Write-Output (T "Starten: cd '$InstallPath' und npm start" "Start: cd '$InstallPath' and npm start")
 Write-Output (T "Konfiguration im Browser: $defaultUrl (beim ersten Start /setup)." "Open configuration website in browser: $defaultUrl (first start uses /setup).")
+Write-Output (T "Wenn HTTP/HTTPS nicht passt: HTTPS_ENABLED, HOST und PORT in .env pruefen." "If HTTP/HTTPS does not match: check HTTPS_ENABLED, HOST and PORT in .env.")
+Write-Output (T "Bei Remote-Zugriff HOST in .env auf 0.0.0.0 setzen und Port freigeben." "For remote access set HOST in .env to 0.0.0.0 and open the port in firewall.")
