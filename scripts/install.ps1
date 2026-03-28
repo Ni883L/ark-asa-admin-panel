@@ -21,7 +21,6 @@ function T([string]$German, [string]$English) {
 }
 
 Write-Host (T "Installer-Version: $($script:InstallerVersion)" "Installer version: $($script:InstallerVersion)")
-Assert-NoReservedVariableConflicts
 
 function Assert-NoReservedVariableConflicts() {
   $scriptSource = $null
@@ -56,6 +55,8 @@ function Assert-NoReservedVariableConflicts() {
     throw (T "Installer-Guard: reservierter Variablenname 'Host' im Script gefunden. Bitte neueste Installer-Version verwenden." "Installer guard: reserved variable name 'Host' detected in script. Please use the latest installer version.")
   }
 }
+
+Assert-NoReservedVariableConflicts
 
 function Test-CommandAvailable([string]$Name) {
   return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
