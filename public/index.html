@@ -24,6 +24,7 @@
       <section id="wizardView" class="view hidden">
         <div class="card span-2">
           <h2>Ersteinrichtung</h2>
+          <p class="section-hint">1) ASA-Pfad prüfen, 2) Server erkennen, 3) Einrichtung abschließen.</p>
           <p>Pfad prüfen, ASA-Dateien erkennen und Grundeinstellungen speichern.</p>
           <label>ASA-Serverpfad<input id="wizardAsaPath" placeholder="C:\ARK\ASA" /></label>
           <div class="actions">
@@ -49,37 +50,45 @@
         <main class="grid">
           <section class="card span-2">
             <h2>Dashboard</h2>
+            <p class="section-hint">Wichtige Serveraktionen, Update-Checks und Systemzustand auf einen Blick.</p>
             <div id="statusGrid" class="stats"></div>
             <div class="actions">
               <button data-action="start">Start</button>
               <button data-action="stop" class="warn">Stop</button>
               <button data-action="restart">Restart</button>
-              <button data-action="asa-update">ASA-Update</button>
+              <button data-action="asa-update-check">ASA-Update prüfen</button>
+              <button data-action="asa-update">Spieledateien installieren/aktualisieren</button>
               <button data-action="panel-update">Panel-Update</button>
               <button data-action="backup">Backup</button>
               <button data-action="reboot-host" class="danger">Windows neu starten</button>
             </div>
             <label>Neustart-Verzögerung (Sekunden)<input id="rebootDelay" type="number" min="0" step="1" value="60" /></label>
+            <div id="actionFeedback" class="feedback hidden"><span id="actionFeedbackText"></span><button id="feedbackCloseBtn" class="ghost" type="button">✕</button></div>
+            <div id="accessHint" class="hint"></div>
           </section>
 
           <section class="card">
             <h2>Spieler</h2>
+            <p class="section-hint">Erkannte Spieler aus Logs/RCON.</p>
             <div id="players"></div>
           </section>
 
           <section class="card span-2">
             <h2>Profile & Startparameter</h2>
+            <p class="section-hint">Serverprofile bearbeiten und Startparameter speichern.</p>
             <textarea id="profilesEditor" rows="14"></textarea>
             <button id="saveProfilesBtn">Profile speichern</button>
           </section>
 
           <section class="card">
             <h2>Backups</h2>
+            <p class="section-hint">Verfügbare Sicherungen und Restore.</p>
             <div id="backups"></div>
           </section>
 
           <section class="card span-2">
             <h2>Konfigurationen</h2>
+            <p class="section-hint">INI-Dateien direkt anzeigen und anpassen.</p>
             <div class="tabs">
               <button data-config="GameUserSettings.ini">GameUserSettings.ini</button>
               <button data-config="Game.ini">Game.ini</button>
@@ -93,23 +102,27 @@
 
           <section class="card span-2">
             <h2>Logs</h2>
+            <p class="section-hint">Letzte Servermeldungen zur schnellen Diagnose.</p>
             <pre id="logs"></pre>
           </section>
 
           <section class="card">
             <h2>Einstellungen</h2>
+            <p class="section-hint">Panel-Einstellungen als JSON verwalten (z. B. autoAsaUpdate).</p>
             <textarea id="settingsEditor" rows="12"></textarea>
             <button id="saveSettingsBtn">Einstellungen speichern</button>
           </section>
 
           <section class="card">
             <h2>Health & Versionen</h2>
+            <p class="section-hint">Systemzustand und Versionsinformationen.</p>
             <pre id="healthInfo"></pre>
             <pre id="versionInfo"></pre>
           </section>
 
           <section class="card span-2">
             <h2>Geplante Tasks</h2>
+            <p class="section-hint">Wiederkehrende Aufgaben (Backup/Update/Reboot) planen.</p>
             <textarea id="tasksEditor" rows="10"></textarea>
             <button id="saveTasksBtn">Tasks speichern</button>
           </section>

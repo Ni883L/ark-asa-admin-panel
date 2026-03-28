@@ -4,6 +4,7 @@ const defaults = require('../config/defaults');
 const store = require('./store');
 const powershell = require('./powershell');
 const logger = require('./logger');
+const backupService = require('./backupService');
 const runtimeGuardService = require('./runtimeGuardService');
 const { validateArkIni } = require('../util/ini');
 const { sanitizeName, sanitizePort, requireString } = require('../util/validators');
@@ -120,9 +121,22 @@ function writeIni(filename, content) {
 }
 
 async function installOrUpdateServer() {
+  await backupService.createBackup('pre-asa-update');
   const result = await powershell.run('steamcmd-install-or-update.ps1');
   logger.audit('system', 'asa-install-or-update');
   return result;
+}
+
+async function checkForServerUpdate() {
+  const result = await powershell.run('steamcmd-check-update.ps1');
+  let parsed = {};
+  try {
+    parsed = JSON.parse(result.stdout || '{}');
+  } catch (_error) {
+    throw new Error(`Update-Check konnte nicht gelesen werden: ${result.stdout}`);
+  }
+  logger.audit('system', 'asa-update-check', { updateAvailable: !!parsed.updateAvailable });
+  return parsed;
 }
 
 async function selfUpdate() {
@@ -142,6 +156,7 @@ module.exports = {
   readIni,
   writeIni,
   installOrUpdateServer,
+  checkForServerUpdate,
   selfUpdate,
   getProfileCommand
 };
