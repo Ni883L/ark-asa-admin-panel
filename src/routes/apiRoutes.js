@@ -57,6 +57,10 @@ router.use((req, res, next) => {
 
 router.get('/bootstrap', (_req, res) => {
   const wizard = setupService.getWizardState();
+  const localIps = Object.values(os.networkInterfaces())
+    .flat()
+    .filter((entry) => entry && entry.family === 'IPv4' && !entry.internal)
+    .map((entry) => entry.address);
   res.json({
     ...wizard,
     appName: defaults.app.name,
@@ -66,7 +70,8 @@ router.get('/bootstrap', (_req, res) => {
       host: defaults.app.host,
       port: defaults.app.port,
       httpsEnabled: defaults.app.httpsEnabled
-    }
+    },
+    localIps
   });
 });
 
@@ -189,6 +194,24 @@ router.post('/actions/panel-restart', async (req, res) => {
     authService.requireRole(req, ['admin']);
     const result = await asaService.restartPanelService();
     res.json({ ok: true, ...result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.post('/actions/panel-firewall-check', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const port = Number(req.body?.port || defaults.app.port || 3000);
+    res.json({ ok: true, result: await asaService.checkPanelFirewall(port) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.post('/actions/panel-firewall-open', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const port = Number(req.body?.port || defaults.app.port || 3000);
+    res.json({ ok: true, result: await asaService.openPanelFirewall(port) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

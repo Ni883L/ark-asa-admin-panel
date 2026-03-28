@@ -41,10 +41,15 @@ function renderAccessHint() {
 
   const { host, port, httpsEnabled } = bootstrapState.appBinding;
   const scheme = httpsEnabled ? 'https' : 'http';
+  const ips = bootstrapState.localIps || [];
   if (host === '0.0.0.0' || host === '::') {
-    hint.textContent = `LAN-Zugriff aktiv: ${scheme}://<server-ip>:${port}`;
+    if (ips.length) {
+      hint.textContent = `LAN-Zugriff aktiv: ${ips.map((ip) => `${scheme}://${ip}:${port}`).join(' | ')}`;
+    } else {
+      hint.textContent = `LAN-Zugriff aktiv: ${scheme}://<server-ip>:${port}`;
+    }
   } else {
-    hint.textContent = `LAN-Zugriff ist aktuell nicht aktiv (HOST=${host}). Für LAN setze HOST=0.0.0.0 und starte das Panel neu.`;
+    hint.textContent = `LAN-Zugriff ist aktuell nicht aktiv (HOST=${host}). Für LAN setze HOST=0.0.0.0 und starte den Webdienst neu.`;
   }
 }
 
@@ -343,6 +348,31 @@ document.getElementById('restartPanelServiceBtn').addEventListener('click', asyn
   }
   setFeedback('Webdienst-Neustart wurde ausgelöst. Seite in wenigen Sekunden neu laden.', 'info');
   setTimeout(() => window.location.reload(), 4000);
+});
+
+document.getElementById('checkFirewallBtn').addEventListener('click', async () => {
+  try {
+    const port = Number(document.getElementById('panelPortInput').value || 3000);
+    const data = await api('/api/actions/panel-firewall-check', { method: 'POST', body: JSON.stringify({ port }) });
+    if (data?.result?.isOpen) {
+      setFeedback(`Firewall ist bereits offen für TCP-Port ${port}.`, 'success');
+    } else {
+      setFeedback(`Firewall-Regel für TCP-Port ${port} fehlt. Bitte Port freigeben.`, 'error');
+    }
+  } catch (error) {
+    setFeedback(`Firewall-Check fehlgeschlagen: ${error.message}`, 'error');
+  }
+});
+
+document.getElementById('openFirewallBtn').addEventListener('click', async () => {
+  if (!confirm('Firewall-Port für das Panel jetzt freigeben? (Administratorrechte nötig)')) return;
+  try {
+    const port = Number(document.getElementById('panelPortInput').value || 3000);
+    await api('/api/actions/panel-firewall-open', { method: 'POST', body: JSON.stringify({ port }) });
+    setFeedback(`Firewall-Port ${port} wurde freigegeben (oder war bereits offen).`, 'success');
+  } catch (error) {
+    setFeedback(`Firewall-Freigabe fehlgeschlagen: ${error.message}`, 'error');
+  }
 });
 
 document.getElementById('saveTasksBtn').addEventListener('click', async () => {

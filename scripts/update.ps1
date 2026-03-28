@@ -16,6 +16,16 @@ function Resolve-CommandPath([string]$Name) {
       "${env:ProgramFiles}\Git\cmd\git.exe",
       "${env:ProgramFiles}\Git\bin\git.exe"
     ) }
+    'node' { @(
+      "${env:ProgramFiles}\nodejs\node.exe",
+      "${env:ProgramFiles(x86)}\nodejs\node.exe",
+      "${env:LOCALAPPDATA}\Programs\nodejs\node.exe"
+    ) }
+    'npm' { @(
+      "${env:ProgramFiles}\nodejs\npm.cmd",
+      "${env:ProgramFiles(x86)}\nodejs\npm.cmd",
+      "${env:LOCALAPPDATA}\Programs\nodejs\npm.cmd"
+    ) }
     default { @() }
   }
 
@@ -170,6 +180,16 @@ $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backup = Join-Path $backupRoot "panel-minimal-$stamp.zip"
 New-MinimalPanelBackup -InstallPath $InstallPath -BackupRoot $backupRoot -BackupFile $backup
 $gitCommand = Resolve-CommandPath 'git'
+$npmCommand = Resolve-CommandPath 'npm'
+$nodePath = Resolve-CommandPath 'node'
+$nodeDir = if ($nodePath) { Split-Path -Parent $nodePath } else { $null }
+if ($nodeDir) {
+  $env:Path = "$nodeDir;$env:Path"
+  if (-not $npmCommand) {
+    $npmCandidate = Join-Path $nodeDir 'npm.cmd'
+    if (Test-Path $npmCandidate) { $npmCommand = $npmCandidate }
+  }
+}
 $previousCommit = 'unknown'
 if ($gitCommand -and (Test-Path (Join-Path $InstallPath '.git'))) {
   $previousCommit = (& $gitCommand rev-parse HEAD).Trim()
@@ -184,7 +204,10 @@ if ($gitCommand -and (Test-Path (Join-Path $InstallPath '.git'))) {
   }
   Install-ProjectFromArchive -RepoUrl $RepoUrl -Branch $Branch -InstallPath $InstallPath
 }
-npm install --omit=dev --no-audit --no-fund
+if (-not $npmCommand) {
+  throw 'npm wurde nicht gefunden. Bitte Node.js installieren oder PATH aktualisieren.'
+}
+& $npmCommand install --omit=dev --no-audit --no-fund
 Write-Output "update complete from $previousCommit"
 Write-Output "minimal backup created: $backup"
 $panelConnection = Resolve-PanelConnection (Get-EnvSettings (Join-Path $InstallPath '.env'))

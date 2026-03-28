@@ -8,6 +8,17 @@ const backupService = require('./backupService');
 const runtimeGuardService = require('./runtimeGuardService');
 const { validateArkIni } = require('../util/ini');
 const { sanitizeName, sanitizePort, requireString } = require('../util/validators');
+const { spawn } = require('child_process');
+
+function getEffectiveAsaRoot() {
+  const settings = store.getSettings();
+  return settings?.detectedServer?.root || defaults.asa.root;
+}
+
+function resolveAsaExePath() {
+  if (defaults.asa.exe && fs.existsSync(defaults.asa.exe)) return defaults.asa.exe;
+  return path.join(getEffectiveAsaRoot(), 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe');
+}
 
 function resolveAsaExePath() {
   if (defaults.asa.exe && fs.existsSync(defaults.asa.exe)) return defaults.asa.exe;
@@ -175,9 +186,37 @@ async function selfUpdate() {
 }
 
 async function restartPanelService() {
-  const result = await powershell.run('restart-panel-service.ps1', [String(process.pid)]);
+  const envOverrides = {};
+  const envFile = path.resolve(process.cwd(), '.env');
+  if (fs.existsSync(envFile)) {
+    for (const line of fs.readFileSync(envFile, 'utf8').split(/\r?\n/)) {
+      if (!line || line.trim().startsWith('#') || !line.includes('=')) continue;
+      const [key, ...rest] = line.split('=');
+      envOverrides[key.trim()] = rest.join('=').trim();
+    }
+  }
+
+  const child = spawn(process.execPath, process.argv.slice(1), {
+    cwd: process.cwd(),
+    env: { ...process.env, ...envOverrides },
+    detached: true,
+    stdio: 'ignore'
+  });
+  child.unref();
+  setTimeout(() => process.exit(0), 800);
+  const result = { stdout: 'panel process restart triggered', stderr: '' };
   logger.audit('system', 'panel-restart-service');
   return result;
+}
+
+async function checkPanelFirewall(port) {
+  const result = await powershell.run('panel-firewall.ps1', ['-Mode', 'Check', '-Port', String(port)]);
+  return JSON.parse(result.stdout || '{}');
+}
+
+async function openPanelFirewall(port) {
+  const result = await powershell.run('panel-firewall.ps1', ['-Mode', 'Open', '-Port', String(port)]);
+  return JSON.parse(result.stdout || '{}');
 }
 
 module.exports = {
@@ -194,5 +233,7 @@ module.exports = {
   checkForServerUpdate,
   selfUpdate,
   restartPanelService,
+  checkPanelFirewall,
+  openPanelFirewall,
   getProfileCommand
 };
