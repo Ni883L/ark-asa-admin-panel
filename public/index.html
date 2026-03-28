@@ -54,12 +54,14 @@
               <button data-action="start">Start</button>
               <button data-action="stop" class="warn">Stop</button>
               <button data-action="restart">Restart</button>
-              <button data-action="asa-update">ASA-Update</button>
+              <button data-action="asa-update">Spieledateien installieren/aktualisieren</button>
               <button data-action="panel-update">Panel-Update</button>
               <button data-action="backup">Backup</button>
               <button data-action="reboot-host" class="danger">Windows neu starten</button>
             </div>
             <label>Neustart-Verzögerung (Sekunden)<input id="rebootDelay" type="number" min="0" step="1" value="60" /></label>
+            <div id="actionFeedback" class="feedback hidden"></div>
+            <div id="accessHint" class="hint"></div>
           </section>
 
           <section class="card">
