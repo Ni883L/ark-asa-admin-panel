@@ -49,27 +49,6 @@ function ensureRuntimePathsAndIniFiles() {
   }
 }
 
-
-function ensureRuntimePathsAndIniFiles() {
-  fs.mkdirSync(defaults.asa.configDir, { recursive: true });
-  if (defaults.asa.savedArksPath) {
-    fs.mkdirSync(defaults.asa.savedArksPath, { recursive: true });
-  }
-
-  const iniDefaults = {
-    'GameUserSettings.ini': '[ServerSettings]\n',
-    'Game.ini': '[/Script/ShooterGame.ShooterGameMode]\n',
-    'Engine.ini': '[/Script/Engine.GameEngine]\n'
-  };
-
-  for (const [name, fallback] of Object.entries(iniDefaults)) {
-    const file = path.join(defaults.asa.configDir, name);
-    if (!fs.existsSync(file)) {
-      fs.writeFileSync(file, fallback, 'utf8');
-    }
-  }
-}
-
 function getProfileSummary() {
   return store.getProfiles();
 }
@@ -195,6 +174,12 @@ async function selfUpdate() {
   return result;
 }
 
+async function restartPanelService() {
+  const result = await powershell.run('restart-panel-service.ps1', [String(process.pid)]);
+  logger.audit('system', 'panel-restart-service');
+  return result;
+}
+
 module.exports = {
   getProfileSummary,
   saveProfiles,
@@ -208,5 +193,6 @@ module.exports = {
   installOrUpdateServer,
   checkForServerUpdate,
   selfUpdate,
+  restartPanelService,
   getProfileCommand
 };

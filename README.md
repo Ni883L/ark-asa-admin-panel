@@ -58,6 +58,7 @@ ark-asa-admin/
 ├── scripts/
 │   ├── install.ps1
 │   ├── update.ps1
+│   ├── update.bat
 │   ├── steamcmd-install-or-update.ps1
 │   ├── start-server.ps1
 │   ├── stop-server.ps1
@@ -139,12 +140,17 @@ Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeic
 Das Update-Skript (`scripts/update.ps1`) prueft vor dem Update ebenfalls den freien Speicherplatz (mind. 1 GB), erstellt ein minimales ZIP-Backup (nur fuer Rollback relevante Dateien/Ordner) und installiert danach nur produktive Abhaengigkeiten:
 
 ```powershell
-.\scripts\update.ps1 -InstallPath 'C:\ark-asa-admin' -Branch 'main'
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\update.ps1 -InstallPath 'C:\ark-asa-admin' -Branch 'main'
+```
+
+Alternativ (ohne Execution-Policy-Fehler):
+```powershell
+.\scripts\update.bat -InstallPath 'C:\ark-asa-admin' -Branch 'main'
 ```
 
 Minimal-Backup-Inhalt: `.env`, `.env.example`, `package.json`, `package-lock.json`, `public/`, `src/`, `scripts/`, `runtime/data/`.
 
-Hinweis: Fuer `scripts/update.ps1` wird weiterhin Git benoetigt.
+Hinweis: Wenn `git` oder der `.git`-Ordner fehlt, faellt `update.ps1` automatisch auf ZIP-Download vom Repository zurueck.
 
 Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner aufgerufen werden, wird dieser Pfad standardmaessig automatisch verwendet (kein fester Hardcode auf `C:\...`).
 

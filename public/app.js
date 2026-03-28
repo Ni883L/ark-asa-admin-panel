@@ -165,14 +165,15 @@ async function loadConfig(name = currentConfig) {
 }
 
 async function refreshDashboard() {
-  const [data, profiles, health, versions, tasks, users, audit] = await Promise.all([
+  const [data, profiles, health, versions, tasks, users, audit, panelEnv] = await Promise.all([
     api('/api/dashboard'),
     api('/api/profiles'),
     api('/api/health'),
     api('/api/versions'),
     api('/api/tasks'),
     api('/api/users'),
-    api('/api/audit')
+    api('/api/audit'),
+    api('/api/panel-env')
   ]);
 
   renderStats(data.status, data.metrics);
@@ -182,6 +183,10 @@ async function refreshDashboard() {
   document.getElementById('logs').textContent = data.logs || '(leer)';
   document.getElementById('profilesEditor').value = JSON.stringify(profiles, null, 2);
   document.getElementById('settingsEditor').value = JSON.stringify(data.settings, null, 2);
+  document.getElementById('panelHostInput').value = panelEnv.host || '127.0.0.1';
+  document.getElementById('panelPortInput').value = panelEnv.port || 3000;
+  document.getElementById('panelHttpsInput').checked = !!panelEnv.httpsEnabled;
+  document.getElementById('autoAsaUpdateInput').checked = !!data.settings.autoAsaUpdate;
   document.getElementById('healthInfo').textContent = JSON.stringify(health, null, 2);
   document.getElementById('versionInfo').textContent = JSON.stringify(versions, null, 2);
   document.getElementById('tasksEditor').value = JSON.stringify(tasks.tasks || [], null, 2);
@@ -304,6 +309,40 @@ document.getElementById('saveSettingsBtn').addEventListener('click', async () =>
   } catch (error) {
     setFeedback(error.message, 'error');
   }
+});
+
+document.getElementById('savePanelOptionsBtn').addEventListener('click', async () => {
+  try {
+    const host = document.getElementById('panelHostInput').value.trim();
+    const port = Number(document.getElementById('panelPortInput').value || 3000);
+    const httpsEnabled = document.getElementById('panelHttpsInput').checked;
+    const autoAsaUpdate = document.getElementById('autoAsaUpdateInput').checked;
+
+    await api('/api/panel-env', {
+      method: 'POST',
+      body: JSON.stringify({ host, port, httpsEnabled })
+    });
+    await api('/api/settings', {
+      method: 'POST',
+      body: JSON.stringify({ autoAsaUpdate })
+    });
+    setFeedback('Panel-Optionen gespeichert. Für HOST/PORT/HTTPS ist ein Webdienst-Neustart erforderlich.', 'success');
+    await refreshDashboard();
+  } catch (error) {
+    setFeedback(error.message, 'error');
+  }
+});
+
+document.getElementById('restartPanelServiceBtn').addEventListener('click', async () => {
+  if (!confirm('Panel-Webdienst wirklich neu starten? Die aktuelle Verbindung wird getrennt.')) return;
+  try {
+    await api('/api/actions/panel-restart', { method: 'POST', body: JSON.stringify({ confirm: true }) });
+  } catch (error) {
+    setFeedback(`Neustart fehlgeschlagen: ${error.message}`, 'error');
+    return;
+  }
+  setFeedback('Webdienst-Neustart wurde ausgelöst. Seite in wenigen Sekunden neu laden.', 'info');
+  setTimeout(() => window.location.reload(), 4000);
 });
 
 document.getElementById('saveTasksBtn').addEventListener('click', async () => {
