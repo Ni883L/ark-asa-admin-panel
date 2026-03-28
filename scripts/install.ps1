@@ -13,10 +13,48 @@ $script:NodeCommand = $null
 $script:NpmCommand = $null
 $script:IsInstallPathUserProvided = $PSBoundParameters.ContainsKey('InstallPath')
 $script:InstallerScriptUrl = 'https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1'
+$script:InstallerVersion = '2026-03-28.1'
 
 function T([string]$German, [string]$English) {
   if ($script:IsGerman) { return $German }
   return $English
+}
+
+Write-Host (T "Installer-Version: $($script:InstallerVersion)" "Installer version: $($script:InstallerVersion)")
+Assert-NoReservedVariableConflicts
+
+function Assert-NoReservedVariableConflicts() {
+  $scriptSource = $null
+  if ($PSCommandPath -and (Test-Path $PSCommandPath)) {
+    $scriptSource = Get-Content -Path $PSCommandPath -Raw
+  } elseif ($MyInvocation.MyCommand.ScriptBlock) {
+    $scriptSource = $MyInvocation.MyCommand.ScriptBlock.ToString()
+  }
+
+  if (-not $scriptSource) {
+    return
+  }
+
+  $tokens = $null
+  $parseErrors = $null
+  $ast = [System.Management.Automation.Language.Parser]::ParseInput($scriptSource, [ref]$tokens, [ref]$parseErrors)
+  $conflicts = $ast.FindAll({
+      param($node)
+      if ($node -is [System.Management.Automation.Language.ParameterAst]) {
+        return ($node.Name.VariablePath.UserPath -ieq 'Host')
+      }
+
+      if ($node -is [System.Management.Automation.Language.AssignmentStatementAst]) {
+        $left = $node.Left
+        return ($left -is [System.Management.Automation.Language.VariableExpressionAst] -and $left.VariablePath.UserPath -ieq 'Host')
+      }
+
+      return $false
+    }, $true)
+
+  if ($conflicts.Count -gt 0) {
+    throw (T "Installer-Guard: reservierter Variablenname 'Host' im Script gefunden. Bitte neueste Installer-Version verwenden." "Installer guard: reserved variable name 'Host' detected in script. Please use the latest installer version.")
+  }
 }
 
 function Test-CommandAvailable([string]$Name) {
@@ -130,6 +168,16 @@ function Ensure-Dependencies() {
   }
 
   $stillMissing = Wait-ForDependencies -Dependencies $dependencies
+  if ($stillMissing.Count) {
+    Write-Warning (T "Abhaengigkeiten noch nicht vollstaendig erkannt. Zweiter Installationsversuch startet..." "Dependencies are still not fully detected. Starting a second installation pass...")
+    $retryInstall = @($stillMissing | Group-Object WingetId | ForEach-Object { $_.Group[0] })
+    foreach ($dep in $retryInstall) {
+      Install-DependencyWithWinget $dep.WingetId $dep.Label
+    }
+
+    $stillMissing = Wait-ForDependencies -Dependencies $dependencies -Attempts 30 -DelaySeconds 2
+  }
+
   if ($stillMissing.Count) {
     if (-not $SkipDependencyAutoRelaunch) {
       Write-Warning (T "Abhaengigkeiten wurden installiert, aber noch nicht in der aktuellen Shell erkannt. Installer wird in neuem Terminal fortgesetzt..." "Dependencies were installed but are not fully visible in the current shell yet. Continuing installer in a new terminal...")
@@ -258,10 +306,10 @@ function Resolve-PanelConnection([hashtable]$EnvSettings) {
   return @{ Host = $panelHost; Port = $port; HttpsEnabled = $httpsEnabled; Url = $url }
 }
 
-function Test-TcpPortOpen([string]$Host, [int]$Port, [int]$TimeoutMs = 4000) {
+function Test-TcpPortOpen([string]$PanelHost, [int]$Port, [int]$TimeoutMs = 4000) {
   $client = New-Object System.Net.Sockets.TcpClient
   try {
-    $async = $client.BeginConnect($Host, $Port, $null, $null)
+    $async = $client.BeginConnect($PanelHost, $Port, $null, $null)
     if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
       return $false
     }
@@ -277,11 +325,11 @@ function Test-TcpPortOpen([string]$Host, [int]$Port, [int]$TimeoutMs = 4000) {
   }
 }
 
-function Start-PanelNow([string]$InstallPath, [string]$NodeCommand, [string]$Host, [int]$Port) {
+function Start-PanelNow([string]$InstallPath, [string]$NodeCommand, [string]$PanelHost, [int]$Port) {
   $process = Start-Process -FilePath $NodeCommand -ArgumentList 'src/server.js' -WorkingDirectory $InstallPath -WindowStyle Hidden -PassThru
   Start-Sleep -Seconds 3
 
-  $portOpen = Test-TcpPortOpen -Host $Host -Port $Port
+  $portOpen = Test-TcpPortOpen -PanelHost $PanelHost -Port $Port
   return @{ Process = $process; PortOpen = $portOpen }
 }
 
@@ -364,7 +412,7 @@ $panelConnection = Resolve-PanelConnection $envSettings
 $defaultUrl = $panelConnection.Url
 $startAnswer = Read-Host (T "Panel jetzt direkt starten? [J/n]" "Start panel now? [Y/n]")
 if (-not $startAnswer -or $startAnswer.ToLowerInvariant() -in @('j', 'ja', 'y', 'yes')) {
-  $startResult = Start-PanelNow -InstallPath $InstallPath -NodeCommand $script:NodeCommand -Host $panelConnection.Host -Port $panelConnection.Port
+  $startResult = Start-PanelNow -InstallPath $InstallPath -NodeCommand $script:NodeCommand -PanelHost $panelConnection.Host -Port $panelConnection.Port
   if ($startResult.PortOpen) {
     Write-Output (T "Panel wurde gestartet (PID: $($startResult.Process.Id)). Port $($panelConnection.Port) ist erreichbar." "Panel started (PID: $($startResult.Process.Id)). Port $($panelConnection.Port) is reachable.")
   } else {

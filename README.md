@@ -93,7 +93,7 @@ npm start
 ### One-Click-Installation
 **Empfohlener Oneliner (PowerShell als Administrator):**
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "& ([ScriptBlock]::Create((iwr 'https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1' -UseBasicParsing).Content))"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([ScriptBlock]::Create((iwr 'https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1' -UseBasicParsing).Content))"
 ```
 
 Alternative (Script lokal speichern und mit Parametern ausfuehren):
@@ -104,6 +104,9 @@ iwr https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/in
 
 Der gleiche Oneliner liegt auch in `INSTALL_ONELINER.txt`.
 
+
+> Falls weiterhin die Meldung `Fehlende Abhaengigkeiten: Git, Node.js, npm` erscheint, laeuft sehr wahrscheinlich noch eine alte Installer-Version. Die aktuelle Version wird beim Start als `Installer-Version: ...` ausgegeben.
+
 Hinweis: Das Install-Skript
 - fragt vor der Installation, ob statt des Standardpfads `C:\ark-asa-admin` ein anderer Installationsort verwendet werden soll,
 - uebernimmt den gewaehlten Installationspfad im kompletten Installationsablauf (Clone, Abhaengigkeiten, Startup-Task, Start-/URL-Hinweise),
@@ -113,6 +116,7 @@ Hinweis: Das Install-Skript
 - installiert nur die produktiven Node-Abhaengigkeiten (`npm install --omit=dev`),
 - bietet am Ende den direkten Start des Panels an (mit Erreichbarkeitscheck auf `127.0.0.1`) und
 - gibt nach der Installation den Startbefehl sowie die Konfigurations-Website basierend auf `.env` aus (Schema/Host/Port aus `HTTPS_ENABLED`, `HOST`, `PORT`; erster Start ueber `/setup`).
+- enthaelt einen Guard gegen reservierte PowerShell-Variablennamen (z. B. `Host`), damit entsprechende Script-Versionen fruehzeitig mit klarer Meldung abgebrochen werden.
 
 
 ### Troubleshooting: "127.0.0.1 hat die Verbindung verweigert"
