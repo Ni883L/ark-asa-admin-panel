@@ -20,6 +20,21 @@ function setFeedback(message, type = 'info') {
   }
 }
 
+
+function setActionLog(actionLabel, result) {
+  const logEl = document.getElementById('actionLog');
+  if (!logEl) return;
+
+  const stdout = String(result?.stdout || '').trim();
+  const stderr = String(result?.stderr || '').trim();
+  const lines = [
+    `[${new Date().toLocaleString()}] ${actionLabel}`,
+    stdout ? `STDOUT:\n${stdout}` : 'STDOUT: (leer)',
+    stderr ? `STDERR:\n${stderr}` : 'STDERR: (leer)'
+  ];
+  logEl.textContent = lines.join('\n\n');
+}
+
 function renderAccessHint() {
   const hint = document.getElementById('accessHint');
   if (!hint || !bootstrapState?.appBinding) return;
@@ -39,13 +54,16 @@ function renderAccessHint() {
 async function withBusy(button, fn) {
   if (!button) return fn();
   const originalText = button.textContent;
+  const progress = document.getElementById('actionProgress');
   button.disabled = true;
   button.textContent = 'Bitte warten...';
+  if (progress) progress.classList.remove('hidden');
   try {
     return await fn();
   } finally {
     button.disabled = false;
     button.textContent = originalText;
+    if (progress) progress.classList.add('hidden');
   }
 }
 
@@ -323,14 +341,17 @@ for (const button of document.querySelectorAll('[data-action]')) {
     try {
       await withBusy(button, async () => {
       if (action === 'backup') {
-        await api('/api/backups/create', { method: 'POST', body: JSON.stringify({ type: 'manual' }) });
+        const result = await api('/api/backups/create', { method: 'POST', body: JSON.stringify({ type: 'manual' }) });
+        setActionLog('Backup', result);
         setFeedback(`Aktion '${action}' erfolgreich ausgeführt.`, 'success');
       } else if (action === 'reboot-host') {
         const delaySeconds = Number(document.getElementById('rebootDelay').value || 0);
-        await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({ confirm: true, delaySeconds }) });
+        const result = await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({ confirm: true, delaySeconds }) });
+        setActionLog('Host-Reboot', result);
         setFeedback(`Aktion '${action}' erfolgreich ausgeführt.`, 'success');
       } else if (action === 'asa-update-check') {
         const result = await api('/api/actions/asa-update-check', { method: 'POST', body: JSON.stringify({}) });
+        setActionLog('ASA-Update prüfen', result);
         if (result?.check?.updateAvailable) {
           const autoUpdated = result.autoUpdated ? ' Auto-Update wurde ausgeführt.' : '';
           setFeedback(`ASA-Update verfügbar (Installiert: ${result.check.installedBuild || 'unbekannt'}, Neu: ${result.check.latestBuild || 'unbekannt'}).${autoUpdated}`, result.autoUpdated ? 'success' : 'info');
@@ -339,13 +360,15 @@ for (const button of document.querySelectorAll('[data-action]')) {
         }
       } else {
         const confirmPayload = ['asa-update', 'panel-update'].includes(action) ? { confirm: true } : {};
-        await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(confirmPayload) });
+        const result = await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(confirmPayload) });
+        setActionLog(`Aktion ${action}`, result);
         setFeedback(`Aktion '${action}' erfolgreich ausgeführt.`, 'success');
       }
 
       await refreshDashboard();
       });
     } catch (error) {
+      setActionLog(`Aktion ${action} (Fehler)`, { stderr: error.message });
       setFeedback(`Aktion '${action}' fehlgeschlagen: ${error.message}`, 'error');
     }
   });
