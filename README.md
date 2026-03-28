@@ -131,7 +131,22 @@ Hinweis: Das Install-Skript
 4. Fuer Remote-Zugriff in `.env` `HOST=0.0.0.0` setzen und Firewall-Port freigeben.
 
 ## One-Click-Installer
-Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeichnisse, erzeugt eine `.env` und kann optional einen Windows-Starttask anlegen.
+Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeichnisse, erzeugt eine `.env` und kann optional einen Windows-Starttask anlegen. Bei Abschluss der Ersteinrichtung wird SteamCMD geprüft und bei Bedarf automatisch installiert.
+
+
+### Update-Skript
+
+Das Update-Skript (`scripts/update.ps1`) prueft vor dem Update ebenfalls den freien Speicherplatz (mind. 1 GB), erstellt ein minimales ZIP-Backup (nur fuer Rollback relevante Dateien/Ordner) und installiert danach nur produktive Abhaengigkeiten:
+
+```powershell
+.\scripts\update.ps1 -InstallPath 'C:\ark-asa-admin' -Branch 'main'
+```
+
+Minimal-Backup-Inhalt: `.env`, `.env.example`, `package.json`, `package-lock.json`, `public/`, `src/`, `scripts/`, `runtime/data/`.
+
+Hinweis: Fuer `scripts/update.ps1` wird weiterhin Git benoetigt.
+
+Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner aufgerufen werden, wird dieser Pfad standardmaessig automatisch verwendet (kein fester Hardcode auf `C:\...`).
 
 
 ### Update-Skript
@@ -158,7 +173,9 @@ Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner a
 
 ### ASA-Server
 - vor Update automatisch Backup
-- SteamCMD-Update ausführen
+- SteamCMD-Update ausführen (SteamCMD wird bei fehlender Datei automatisch heruntergeladen)
+- vor jeder ASA-Aktualisierung wird automatisch ein Backup erstellt
+- Update-Check über UI (Button `ASA-Update prüfen`), optionales Auto-Update bei `autoAsaUpdate=true` in den Einstellungen
 - Ergebnis protokollieren
 - optional geplanter Check per Windows Task Scheduler
 

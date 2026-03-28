@@ -5,14 +5,19 @@ let bootstrapState = null;
 function setFeedback(message, type = 'info') {
   const el = document.getElementById('actionFeedback');
   if (!el) return;
+  const textEl = document.getElementById('actionFeedbackText');
   if (!message) {
     el.className = 'feedback hidden';
-    el.textContent = '';
+    if (textEl) textEl.textContent = '';
     return;
   }
 
   el.className = `feedback ${type}`;
-  el.textContent = message;
+  if (textEl) {
+    textEl.textContent = message;
+  } else {
+    el.textContent = message;
+  }
 }
 
 function renderAccessHint() {
@@ -26,6 +31,36 @@ function renderAccessHint() {
   } else {
     hint.textContent = `LAN-Zugriff ist aktuell nicht aktiv (HOST=${host}). Für LAN setze HOST=0.0.0.0 und starte das Panel neu.`;
   }
+}
+
+
+
+
+async function withBusy(button, fn) {
+  if (!button) return fn();
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Bitte warten...';
+  try {
+    return await fn();
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+function renderWizardDetection(result) {
+  const lines = [
+    `ASA-Pfad: ${result.root}`,
+    `Ordner vorhanden: ${result.exists ? 'Ja' : 'Nein'}`,
+    `Server-EXE gefunden: ${result.exeExists ? 'Ja' : 'Nein'}`,
+    `Config-Verzeichnis gefunden: ${result.configExists ? 'Ja' : 'Nein'}`,
+    `Logdatei gefunden: ${result.logExists ? 'Ja' : 'Nein'}`,
+    '',
+    'Details:',
+    JSON.stringify(result, null, 2)
+  ];
+  return lines.join('\n');
 }
 
 async function api(url, options = {}) {
@@ -141,7 +176,7 @@ async function bootstrapAuth() {
 
   if (!bootstrapState.initialized) {
     document.getElementById('wizardAsaPath').value = bootstrapState.defaults.asaRoot || '';
-    document.getElementById('wizardResult').textContent = JSON.stringify(bootstrapState.detection, null, 2);
+    document.getElementById('wizardResult').textContent = renderWizardDetection(bootstrapState.detection);
     show('wizardView');
     return;
   }
@@ -183,15 +218,17 @@ document.getElementById('detectServerBtn').addEventListener('click', async () =>
       method: 'POST',
       body: JSON.stringify({ path: document.getElementById('wizardAsaPath').value })
     });
-    document.getElementById('wizardResult').textContent = JSON.stringify(result, null, 2);
+    document.getElementById('wizardResult').textContent = renderWizardDetection(result);
+    setFeedback('Servererkennung abgeschlossen. Prüfe die Details im Feld darunter.', 'info');
   } catch (error) {
-    document.getElementById('wizardResult').textContent = error.message;
+    document.getElementById('wizardResult').textContent = `Servererkennung fehlgeschlagen: ${error.message}`;
+    setFeedback(error.message, 'error');
   }
 });
 
 document.getElementById('completeWizardBtn').addEventListener('click', async () => {
   try {
-    await api('/api/bootstrap', {
+    const result = await api('/api/bootstrap', {
       method: 'POST',
       body: JSON.stringify({
         asaRoot: document.getElementById('wizardAsaPath').value,
@@ -199,9 +236,19 @@ document.getElementById('completeWizardBtn').addEventListener('click', async () 
         backupRetention: 14
       })
     });
+
+    if (result?.settings?.steamCmdCheck?.ok === false) {
+      document.getElementById('wizardResult').textContent = `Einrichtung abgeschlossen, aber SteamCMD-Prüfung fehlgeschlagen:
+${result.settings.steamCmdCheck.message}`;
+      setFeedback('SteamCMD konnte bei der Einrichtung nicht vorbereitet werden. Details siehe unten.', 'error');
+    } else {
+      setFeedback('Einrichtung abgeschlossen. SteamCMD ist bereit.', 'success');
+    }
+
     await bootstrapAuth();
   } catch (error) {
-    document.getElementById('wizardResult').textContent = error.message;
+    document.getElementById('wizardResult').textContent = `Einrichtung fehlgeschlagen: ${error.message}`;
+    setFeedback(error.message, 'error');
   }
 });
 
@@ -274,23 +321,37 @@ for (const button of document.querySelectorAll('[data-action]')) {
     if (dangerous.includes(action) && !confirm(`Aktion ${action} wirklich ausführen?`)) return;
 
     try {
+      await withBusy(button, async () => {
       if (action === 'backup') {
         await api('/api/backups/create', { method: 'POST', body: JSON.stringify({ type: 'manual' }) });
+        setFeedback(`Aktion '${action}' erfolgreich ausgeführt.`, 'success');
       } else if (action === 'reboot-host') {
         const delaySeconds = Number(document.getElementById('rebootDelay').value || 0);
         await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({ confirm: true, delaySeconds }) });
+        setFeedback(`Aktion '${action}' erfolgreich ausgeführt.`, 'success');
+      } else if (action === 'asa-update-check') {
+        const result = await api('/api/actions/asa-update-check', { method: 'POST', body: JSON.stringify({}) });
+        if (result?.check?.updateAvailable) {
+          const autoUpdated = result.autoUpdated ? ' Auto-Update wurde ausgeführt.' : '';
+          setFeedback(`ASA-Update verfügbar (Installiert: ${result.check.installedBuild || 'unbekannt'}, Neu: ${result.check.latestBuild || 'unbekannt'}).${autoUpdated}`, result.autoUpdated ? 'success' : 'info');
+        } else {
+          setFeedback(`ASA ist aktuell (Build: ${result?.check?.installedBuild || 'unbekannt'}).`, 'success');
+        }
       } else {
         const confirmPayload = ['asa-update', 'panel-update'].includes(action) ? { confirm: true } : {};
         await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(confirmPayload) });
+        setFeedback(`Aktion '${action}' erfolgreich ausgeführt.`, 'success');
       }
 
-      setFeedback(`Aktion '${action}' erfolgreich ausgeführt.`, 'success');
       await refreshDashboard();
+      });
     } catch (error) {
       setFeedback(`Aktion '${action}' fehlgeschlagen: ${error.message}`, 'error');
     }
   });
 }
+
+document.getElementById('feedbackCloseBtn')?.addEventListener('click', () => setFeedback('', 'info'));
 
 bootstrapAuth().catch((error) => {
   console.error(error);
