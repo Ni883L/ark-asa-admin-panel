@@ -148,6 +148,21 @@ Hinweis: Fuer `scripts/update.ps1` wird weiterhin Git benoetigt.
 
 Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner aufgerufen werden, wird dieser Pfad standardmaessig automatisch verwendet (kein fester Hardcode auf `C:\...`).
 
+
+### Update-Skript
+
+Das Update-Skript (`scripts/update.ps1`) prueft vor dem Update ebenfalls den freien Speicherplatz (mind. 1 GB), erstellt ein minimales ZIP-Backup (nur fuer Rollback relevante Dateien/Ordner) und installiert danach nur produktive Abhaengigkeiten:
+
+```powershell
+.\scripts\update.ps1 -InstallPath 'C:\ark-asa-admin' -Branch 'main'
+```
+
+Minimal-Backup-Inhalt: `.env`, `.env.example`, `package.json`, `package-lock.json`, `public/`, `src/`, `scripts/`, `runtime/data/`.
+
+Hinweis: Fuer `scripts/update.ps1` wird weiterhin Git benoetigt.
+
+Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner aufgerufen werden, wird dieser Pfad standardmaessig automatisch verwendet (kein fester Hardcode auf `C:\...`).
+
 ## Update-Strategie
 
 ### Adminpanel
