@@ -36,14 +36,19 @@ router.get('/bootstrap', (_req, res) => {
     ...wizard,
     appName: defaults.app.name,
     host: os.hostname(),
-    version: require('../../package.json').version
+    version: require('../../package.json').version,
+    appBinding: {
+      host: defaults.app.host,
+      port: defaults.app.port,
+      httpsEnabled: defaults.app.httpsEnabled
+    }
   });
 });
 
-router.post('/bootstrap', (req, res) => {
+router.post('/bootstrap', async (req, res) => {
   try {
     authService.requireRole(req, ['admin']);
-    const settings = setupService.completeWizard(req.body || {});
+    const settings = await setupService.completeWizard(req.body || {});
     res.json({ ok: true, settings });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -154,12 +159,25 @@ router.post('/actions/panel-update', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+router.post('/actions/asa-update-check', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const check = await asaService.checkForServerUpdate();
+    let autoUpdated = false;
+    if (check.updateAvailable && store.getSettings().autoAsaUpdate === true) {
+      await asaService.installOrUpdateServer();
+      autoUpdated = true;
+    }
+    res.json({ ok: true, check, autoUpdated });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/actions/asa-update', async (req, res) => {
   try {
     authService.requireRole(req, ['admin']);
-    if (store.getSettings().autoBackupBeforeUpdate !== false) {
-      await backupService.createBackup('pre-update');
-    }
     const result = await asaService.installOrUpdateServer();
     await webhookService.notify('ASA-Update', 'Serverdateien wurden installiert/aktualisiert.');
     res.json({ ok: true, ...result });
