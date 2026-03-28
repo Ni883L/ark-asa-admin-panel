@@ -23,6 +23,27 @@ function getProfileCommand(profile) {
   return `"${defaults.asa.exe}" ${args.join('?')} ${extra}`.trim();
 }
 
+
+function ensureRuntimePathsAndIniFiles() {
+  fs.mkdirSync(defaults.asa.configDir, { recursive: true });
+  if (defaults.asa.savedArksPath) {
+    fs.mkdirSync(defaults.asa.savedArksPath, { recursive: true });
+  }
+
+  const iniDefaults = {
+    'GameUserSettings.ini': '[ServerSettings]\n',
+    'Game.ini': '[/Script/ShooterGame.ShooterGameMode]\n',
+    'Engine.ini': '[/Script/Engine.GameEngine]\n'
+  };
+
+  for (const [name, fallback] of Object.entries(iniDefaults)) {
+    const file = path.join(defaults.asa.configDir, name);
+    if (!fs.existsSync(file)) {
+      fs.writeFileSync(file, fallback, 'utf8');
+    }
+  }
+}
+
 function getProfileSummary() {
   return store.getProfiles();
 }
@@ -67,6 +88,7 @@ async function getStatus() {
 }
 
 async function startServer() {
+  ensureRuntimePathsAndIniFiles();
   const guard = runtimeGuardService.validateRuntimePaths();
   if (!guard.ok) throw new Error(`Start abgebrochen: ${guard.errors.join(' | ')}`);
   const profile = store.getActiveProfile();
@@ -82,6 +104,7 @@ async function stopServer() {
 }
 
 async function restartServer() {
+  ensureRuntimePathsAndIniFiles();
   const guard = runtimeGuardService.validateRuntimePaths();
   if (!guard.ok) throw new Error(`Restart abgebrochen: ${guard.errors.join(' | ')}`);
   const profile = store.getActiveProfile();
@@ -102,6 +125,7 @@ async function rebootHost(payload = {}) {
 }
 
 function readIni(filename) {
+  ensureRuntimePathsAndIniFiles();
   const file = path.join(defaults.asa.configDir, filename);
   const exists = fs.existsSync(file);
   return { file, exists, content: exists ? fs.readFileSync(file, 'utf8') : '' };

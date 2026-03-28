@@ -14,13 +14,14 @@ function validateRuntimePaths() {
   };
 
   const errors = [];
+  const warnings = [];
   if (!checks.asaRootExists) errors.push('ASA_SERVER_ROOT nicht gefunden.');
   if (!checks.asaExeExists && !defaults.asa.serviceName) errors.push('ASA_SERVER_EXE nicht gefunden und kein Dienstname gesetzt.');
   if (!checks.configDirExists) errors.push('ASA_CONFIG_DIR nicht gefunden.');
-  if (!checks.savedArksExists) errors.push('ASA_SAVEDARKS_PATH nicht gefunden.');
+  if (!checks.savedArksExists) warnings.push('ASA_SAVEDARKS_PATH nicht gefunden (Start trotzdem möglich, wird bei Bedarf erstellt).');
   if (!checks.activeProfilePresent) errors.push('Kein aktives Profil vorhanden.');
 
-  return { ok: errors.length === 0, checks, errors };
+  return { ok: errors.length === 0, checks, errors, warnings };
 }
 
 module.exports = { validateRuntimePaths };
