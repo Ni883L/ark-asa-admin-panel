@@ -93,10 +93,10 @@ npm start
 ### One-Click-Installation
 **Empfohlener Oneliner (PowerShell als Administrator):**
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1 -UseBasicParsing | iex"
+powershell -ExecutionPolicy Bypass -Command "& ([ScriptBlock]::Create((iwr 'https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1' -UseBasicParsing).Content))"
 ```
 
-Alternative (Script lokal speichern und mit Parametern ausführen):
+Alternative (Script lokal speichern und mit Parametern ausfuehren):
 ```powershell
 iwr https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1 -OutFile .\install.ps1
 .\install.ps1 -InstallPath 'C:\ark-asa-admin' -Branch 'main' -CreateStartupTask
@@ -104,10 +104,45 @@ iwr https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/in
 
 Der gleiche Oneliner liegt auch in `INSTALL_ONELINER.txt`.
 
-Hinweis: Das Install-Skript prueft `git`, `node` und `npm`, bietet bei fehlenden Abhaengigkeiten einen kurzen Dialog zur automatischen Installation per `winget` und waehlt die Sprache automatisch (Deutsch bei deutschem System, sonst Englisch).
+Hinweis: Das Install-Skript
+- fragt vor der Installation, ob statt des Standardpfads `C:\ark-asa-admin` ein anderer Installationsort verwendet werden soll,
+- uebernimmt den gewaehlten Installationspfad im kompletten Installationsablauf (Clone, Abhaengigkeiten, Startup-Task, Start-/URL-Hinweise),
+- prueft vor der Installation den verfuegbaren Speicherplatz (mind. 2 GB frei),
+- prueft `node` und `npm`, bietet bei fehlenden Abhaengigkeiten einen kurzen Dialog zur automatischen Installation per `winget` und startet den Installer bei Bedarf automatisch in einem neuen Terminal neu (kein manueller Terminal-Neustart noetig),
+- nutzt Git, wenn vorhanden (schnelleres Sync/Update), kann bei Erstinstallation aber auch ohne Git ueber ZIP-Download installieren,
+- installiert nur die produktiven Node-Abhaengigkeiten (`npm install --omit=dev`),
+- bietet am Ende den direkten Start des Panels an (mit Erreichbarkeitscheck auf `127.0.0.1`) und
+- gibt nach der Installation den Startbefehl sowie die Konfigurations-Website basierend auf `.env` aus (Schema/Host/Port aus `HTTPS_ENABLED`, `HOST`, `PORT`; erster Start ueber `/setup`).
+
+
+### Troubleshooting: "127.0.0.1 hat die Verbindung verweigert"
+
+1. Installer-Ausgabe pruefen, ob der Panel-Prozess gestartet wurde.
+2. Falls nicht gestartet oder nicht erreichbar: manuell starten mit:
+   ```powershell
+   cd C:\ark-asa-admin
+   npm start
+   ```
+3. HTTP/HTTPS pruefen: `HTTPS_ENABLED=1` => `https://...`, sonst `http://...`; dazu `HOST` und `PORT` in `.env` kontrollieren.
+4. Fuer Remote-Zugriff in `.env` `HOST=0.0.0.0` setzen und Firewall-Port freigeben.
 
 ## One-Click-Installer
 Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeichnisse, erzeugt eine `.env` und kann optional einen Windows-Starttask anlegen.
+
+
+### Update-Skript
+
+Das Update-Skript (`scripts/update.ps1`) prueft vor dem Update ebenfalls den freien Speicherplatz (mind. 1 GB), erstellt ein minimales ZIP-Backup (nur fuer Rollback relevante Dateien/Ordner) und installiert danach nur produktive Abhaengigkeiten:
+
+```powershell
+.\scripts\update.ps1 -InstallPath 'C:\ark-asa-admin' -Branch 'main'
+```
+
+Minimal-Backup-Inhalt: `.env`, `.env.example`, `package.json`, `package-lock.json`, `public/`, `src/`, `scripts/`, `runtime/data/`.
+
+Hinweis: Fuer `scripts/update.ps1` wird weiterhin Git benoetigt.
+
+Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner aufgerufen werden, wird dieser Pfad standardmaessig automatisch verwendet (kein fester Hardcode auf `C:\...`).
 
 ## Update-Strategie
 
