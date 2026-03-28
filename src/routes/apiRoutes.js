@@ -36,7 +36,12 @@ router.get('/bootstrap', (_req, res) => {
     ...wizard,
     appName: defaults.app.name,
     host: os.hostname(),
-    version: require('../../package.json').version
+    version: require('../../package.json').version,
+    appBinding: {
+      host: defaults.app.host,
+      port: defaults.app.port,
+      httpsEnabled: defaults.app.httpsEnabled
+    }
   });
 });
 
