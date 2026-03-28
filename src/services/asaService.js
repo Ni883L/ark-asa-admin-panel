@@ -9,6 +9,11 @@ const runtimeGuardService = require('./runtimeGuardService');
 const { validateArkIni } = require('../util/ini');
 const { sanitizeName, sanitizePort, requireString } = require('../util/validators');
 
+function resolveAsaExePath() {
+  if (defaults.asa.exe && fs.existsSync(defaults.asa.exe)) return defaults.asa.exe;
+  return path.join(defaults.asa.root, 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe');
+}
+
 function getProfileCommand(profile) {
   if (!profile) return '';
   if (profile.rawCommandLine) return profile.rawCommandLine;
@@ -20,7 +25,28 @@ function getProfileCommand(profile) {
   if (profile.adminPassword) args.push(`ServerAdminPassword=${profile.adminPassword}`);
   if (profile.clusterId) args.push(`ClusterId=${profile.clusterId}`);
   const extra = (profile.extraArgs || '').trim();
-  return `"${defaults.asa.exe}" ${args.join('?')} ${extra}`.trim();
+  return `"${resolveAsaExePath()}" ${args.join('?')} ${extra}`.trim();
+}
+
+
+function ensureRuntimePathsAndIniFiles() {
+  fs.mkdirSync(defaults.asa.configDir, { recursive: true });
+  if (defaults.asa.savedArksPath) {
+    fs.mkdirSync(defaults.asa.savedArksPath, { recursive: true });
+  }
+
+  const iniDefaults = {
+    'GameUserSettings.ini': '[ServerSettings]\n',
+    'Game.ini': '[/Script/ShooterGame.ShooterGameMode]\n',
+    'Engine.ini': '[/Script/Engine.GameEngine]\n'
+  };
+
+  for (const [name, fallback] of Object.entries(iniDefaults)) {
+    const file = path.join(defaults.asa.configDir, name);
+    if (!fs.existsSync(file)) {
+      fs.writeFileSync(file, fallback, 'utf8');
+    }
+  }
 }
 
 

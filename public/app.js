@@ -108,6 +108,15 @@ function show(viewId) {
   document.getElementById(viewId).classList.remove('hidden');
 }
 
+function setMainTab(tab) {
+  for (const panel of document.querySelectorAll('[data-panel]')) {
+    panel.classList.toggle('hidden', panel.dataset.panel !== tab);
+  }
+  for (const tabButton of document.querySelectorAll('[data-main-tab]')) {
+    tabButton.classList.toggle('active', tabButton.dataset.mainTab === tab);
+  }
+}
+
 function renderStats(status, metrics) {
   const target = document.getElementById('statusGrid');
   const fields = {
@@ -375,6 +384,11 @@ for (const button of document.querySelectorAll('[data-action]')) {
 }
 
 document.getElementById('feedbackCloseBtn')?.addEventListener('click', () => setFeedback('', 'info'));
+
+for (const button of document.querySelectorAll('[data-main-tab]')) {
+  button.addEventListener('click', () => setMainTab(button.dataset.mainTab));
+}
+setMainTab('overview');
 
 bootstrapAuth().catch((error) => {
   console.error(error);

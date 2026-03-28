@@ -47,8 +47,14 @@
           </div>
         </header>
 
+        <nav class="main-tabs" aria-label="Dashboard Themen">
+          <button class="main-tab active" data-main-tab="overview" type="button">📊 Überblick</button>
+          <button class="main-tab" data-main-tab="config" type="button">⚙️ Konfiguration</button>
+          <button class="main-tab" data-main-tab="operations" type="button">🧰 Betrieb</button>
+        </nav>
+
         <main class="grid">
-          <section class="card span-2">
+          <section class="card span-2" data-panel="overview">
             <h2>Dashboard</h2>
             <p class="section-hint">Wichtige Serveraktionen, Update-Checks und Systemzustand auf einen Blick.</p>
             <div id="statusGrid" class="stats"></div>
@@ -69,26 +75,26 @@
             <div id="accessHint" class="hint"></div>
           </section>
 
-          <section class="card">
+          <section class="card" data-panel="overview">
             <h2>Spieler</h2>
             <p class="section-hint">Erkannte Spieler aus Logs/RCON.</p>
             <div id="players"></div>
           </section>
 
-          <section class="card span-2">
+          <section class="card span-2" data-panel="config">
             <h2>Profile & Startparameter</h2>
             <p class="section-hint">Serverprofile bearbeiten und Startparameter speichern.</p>
             <textarea id="profilesEditor" rows="14"></textarea>
             <button id="saveProfilesBtn">Profile speichern</button>
           </section>
 
-          <section class="card">
+          <section class="card" data-panel="operations">
             <h2>Backups</h2>
             <p class="section-hint">Verfügbare Sicherungen und Restore.</p>
             <div id="backups"></div>
           </section>
 
-          <section class="card span-2">
+          <section class="card span-2" data-panel="config">
             <h2>Konfigurationen</h2>
             <p class="section-hint">INI-Dateien direkt anzeigen und anpassen.</p>
             <div class="tabs">
@@ -102,39 +108,39 @@
             </div>
           </section>
 
-          <section class="card span-2">
+          <section class="card span-2" data-panel="overview">
             <h2>Logs</h2>
             <p class="section-hint">Letzte Servermeldungen zur schnellen Diagnose.</p>
             <pre id="logs"></pre>
           </section>
 
-          <section class="card">
+          <section class="card" data-panel="config">
             <h2>Einstellungen</h2>
             <p class="section-hint">Panel-Einstellungen als JSON verwalten (z. B. autoAsaUpdate).</p>
             <textarea id="settingsEditor" rows="12"></textarea>
             <button id="saveSettingsBtn">Einstellungen speichern</button>
           </section>
 
-          <section class="card">
+          <section class="card" data-panel="overview">
             <h2>Health & Versionen</h2>
             <p class="section-hint">Systemzustand und Versionsinformationen.</p>
             <pre id="healthInfo"></pre>
             <pre id="versionInfo"></pre>
           </section>
 
-          <section class="card span-2">
+          <section class="card span-2" data-panel="config">
             <h2>Geplante Tasks</h2>
             <p class="section-hint">Wiederkehrende Aufgaben (Backup/Update/Reboot) planen.</p>
             <textarea id="tasksEditor" rows="10"></textarea>
             <button id="saveTasksBtn">Tasks speichern</button>
           </section>
 
-          <section class="card">
+          <section class="card" data-panel="operations">
             <h2>Benutzer</h2>
             <pre id="usersInfo"></pre>
           </section>
 
-          <section class="card span-2">
+          <section class="card span-2" data-panel="operations">
             <h2>Audit-Log</h2>
             <pre id="auditInfo"></pre>
           </section>

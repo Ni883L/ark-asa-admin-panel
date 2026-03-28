@@ -1,5 +1,32 @@
-param([string]$InstallPath = (Split-Path -Parent $PSScriptRoot), [string]$Branch = 'main')
+param(
+  [string]$InstallPath = (Split-Path -Parent $PSScriptRoot),
+  [string]$Branch = 'main',
+  [string]$RepoUrl = 'https://github.com/Ni883L/ark-asa-admin-panel.git'
+)
 $ErrorActionPreference = 'Stop'
+
+function Resolve-CommandPath([string]$Name) {
+  $cmd = Get-Command $Name -ErrorAction SilentlyContinue
+  if ($cmd -and $cmd.Path) {
+    return $cmd.Path
+  }
+
+  $candidates = switch ($Name.ToLowerInvariant()) {
+    'git' { @(
+      "${env:ProgramFiles}\Git\cmd\git.exe",
+      "${env:ProgramFiles}\Git\bin\git.exe"
+    ) }
+    default { @() }
+  }
+
+  foreach ($candidate in $candidates) {
+    if ($candidate -and (Test-Path $candidate)) {
+      return $candidate
+    }
+  }
+
+  return $null
+}
 
 function Ensure-FreeDiskSpace([string]$TargetPath, [int]$MinFreeGb) {
   $resolvedPath = [System.IO.Path]::GetFullPath($TargetPath)
@@ -112,6 +139,28 @@ function Resolve-PanelConnection([hashtable]$EnvSettings) {
   return @{ Url = $url }
 }
 
+function Install-ProjectFromArchive([string]$RepoUrl, [string]$Branch, [string]$InstallPath) {
+  $repoBaseUrl = $RepoUrl -replace '\.git$', ''
+  $archiveUrl = "$repoBaseUrl/archive/refs/heads/$Branch.zip"
+  $tempZip = Join-Path $env:TEMP "ark-panel-update-$Branch-$([System.Guid]::NewGuid().ToString('N')).zip"
+  $extractRoot = Join-Path $env:TEMP "ark-panel-update-extract-$([System.Guid]::NewGuid().ToString('N'))"
+
+  try {
+    Invoke-WebRequest -Uri $archiveUrl -OutFile $tempZip -UseBasicParsing
+    Expand-Archive -Path $tempZip -DestinationPath $extractRoot -Force
+    $sourceDir = Get-ChildItem -Path $extractRoot -Directory | Select-Object -First 1
+    if (-not $sourceDir) {
+      throw "Archiv konnte nicht entpackt werden."
+    }
+
+    Copy-Item -Path (Join-Path $sourceDir.FullName '*') -Destination $InstallPath -Recurse -Force
+  }
+  finally {
+    if (Test-Path $tempZip) { Remove-Item $tempZip -Force }
+    if (Test-Path $extractRoot) { Remove-Item $extractRoot -Recurse -Force }
+  }
+}
+
 Ensure-FreeDiskSpace -TargetPath $InstallPath -MinFreeGb 1
 
 Set-Location $InstallPath
@@ -120,10 +169,21 @@ New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backup = Join-Path $backupRoot "panel-minimal-$stamp.zip"
 New-MinimalPanelBackup -InstallPath $InstallPath -BackupRoot $backupRoot -BackupFile $backup
-$previousCommit = (git rev-parse HEAD).Trim()
-git fetch origin
-git checkout $Branch
-git pull origin $Branch
+$gitCommand = Resolve-CommandPath 'git'
+$previousCommit = 'unknown'
+if ($gitCommand -and (Test-Path (Join-Path $InstallPath '.git'))) {
+  $previousCommit = (& $gitCommand rev-parse HEAD).Trim()
+  & $gitCommand fetch origin
+  & $gitCommand checkout $Branch
+  & $gitCommand pull origin $Branch
+} else {
+  if (-not $gitCommand) {
+    Write-Warning 'git wurde nicht gefunden. Update erfolgt ueber ZIP-Download.'
+  } else {
+    Write-Warning '.git-Ordner wurde nicht gefunden. Update erfolgt ueber ZIP-Download.'
+  }
+  Install-ProjectFromArchive -RepoUrl $RepoUrl -Branch $Branch -InstallPath $InstallPath
+}
 npm install --omit=dev --no-audit --no-fund
 Write-Output "update complete from $previousCommit"
 Write-Output "minimal backup created: $backup"
