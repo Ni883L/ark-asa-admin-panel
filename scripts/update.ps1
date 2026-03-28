@@ -94,11 +94,11 @@ function Resolve-PanelConnection([hashtable]$EnvSettings) {
     }
   }
 
-  $host = '127.0.0.1'
+  $panelHost = '127.0.0.1'
   if ($EnvSettings.ContainsKey('HOST') -and $EnvSettings['HOST']) {
     $configuredHost = $EnvSettings['HOST']
     if ($configuredHost -notin @('0.0.0.0', '::')) {
-      $host = $configuredHost
+      $panelHost = $configuredHost
     }
   }
 
@@ -108,7 +108,7 @@ function Resolve-PanelConnection([hashtable]$EnvSettings) {
   }
 
   $scheme = if ($httpsEnabled) { 'https' } else { 'http' }
-  $url = "${scheme}://${host}:$port"
+  $url = "${scheme}://${panelHost}:$port"
   return @{ Url = $url }
 }
 

@@ -108,7 +108,8 @@ Hinweis: Das Install-Skript
 - fragt vor der Installation, ob statt des Standardpfads `C:\ark-asa-admin` ein anderer Installationsort verwendet werden soll,
 - uebernimmt den gewaehlten Installationspfad im kompletten Installationsablauf (Clone, Abhaengigkeiten, Startup-Task, Start-/URL-Hinweise),
 - prueft vor der Installation den verfuegbaren Speicherplatz (mind. 2 GB frei),
-- prueft `git`, `node` und `npm`, bietet bei fehlenden Abhaengigkeiten einen kurzen Dialog zur automatischen Installation per `winget`,
+- prueft `node` und `npm`, bietet bei fehlenden Abhaengigkeiten einen kurzen Dialog zur automatischen Installation per `winget` und startet den Installer bei Bedarf automatisch in einem neuen Terminal neu (kein manueller Terminal-Neustart noetig),
+- nutzt Git, wenn vorhanden (schnelleres Sync/Update), kann bei Erstinstallation aber auch ohne Git ueber ZIP-Download installieren,
 - installiert nur die produktiven Node-Abhaengigkeiten (`npm install --omit=dev`),
 - bietet am Ende den direkten Start des Panels an (mit Erreichbarkeitscheck auf `127.0.0.1`) und
 - gibt nach der Installation den Startbefehl sowie die Konfigurations-Website basierend auf `.env` aus (Schema/Host/Port aus `HTTPS_ENABLED`, `HOST`, `PORT`; erster Start ueber `/setup`).
@@ -138,6 +139,8 @@ Das Update-Skript (`scripts/update.ps1`) prueft vor dem Update ebenfalls den fre
 ```
 
 Minimal-Backup-Inhalt: `.env`, `.env.example`, `package.json`, `package-lock.json`, `public/`, `src/`, `scripts/`, `runtime/data/`.
+
+Hinweis: Fuer `scripts/update.ps1` wird weiterhin Git benoetigt.
 
 Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner aufgerufen werden, wird dieser Pfad standardmaessig automatisch verwendet (kein fester Hardcode auf `C:\...`).
 

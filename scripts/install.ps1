@@ -2,7 +2,8 @@ param(
   [string]$RepoUrl = 'https://github.com/Ni883L/ark-asa-admin-panel.git',
   [string]$InstallPath = 'C:\ark-asa-admin',
   [string]$Branch = 'main',
-  [switch]$CreateStartupTask
+  [switch]$CreateStartupTask,
+  [switch]$SkipDependencyAutoRelaunch
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,6 +12,7 @@ $script:GitCommand = $null
 $script:NodeCommand = $null
 $script:NpmCommand = $null
 $script:IsInstallPathUserProvided = $PSBoundParameters.ContainsKey('InstallPath')
+$script:InstallerScriptUrl = 'https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1'
 
 function T([string]$German, [string]$English) {
   if ($script:IsGerman) { return $German }
@@ -33,10 +35,14 @@ function Resolve-CommandPath([string]$Name) {
       "${env:ProgramFiles}\Git\bin\git.exe"
     ) }
     'node' { @(
-      "${env:ProgramFiles}\nodejs\node.exe"
+      "${env:ProgramFiles}\nodejs\node.exe",
+      "${env:ProgramFiles(x86)}\nodejs\node.exe",
+      "${env:LOCALAPPDATA}\Programs\nodejs\node.exe"
     ) }
     'npm' { @(
-      "${env:ProgramFiles}\nodejs\npm.cmd"
+      "${env:ProgramFiles}\nodejs\npm.cmd",
+      "${env:ProgramFiles(x86)}\nodejs\npm.cmd",
+      "${env:LOCALAPPDATA}\Programs\nodejs\npm.cmd"
     ) }
     default { @() }
   }
@@ -64,16 +70,45 @@ function Refresh-ProcessPath() {
   }
 }
 
+function Wait-ForDependencies([array]$Dependencies, [int]$Attempts = 20, [int]$DelaySeconds = 2) {
+  for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+    Refresh-ProcessPath
+    $remaining = @($Dependencies | Where-Object { -not (Resolve-CommandPath $_.Name) })
+    if (-not $remaining.Count) {
+      return @()
+    }
+
+    Start-Sleep -Seconds $DelaySeconds
+  }
+
+  return @($Dependencies | Where-Object { -not (Resolve-CommandPath $_.Name) })
+}
+
+function Start-InstallerInNewTerminal() {
+  $argumentParts = @(
+    "& ([ScriptBlock]::Create((iwr '$($script:InstallerScriptUrl)' -UseBasicParsing).Content))",
+    "-RepoUrl '$RepoUrl'",
+    "-InstallPath '$InstallPath'",
+    "-Branch '$Branch'",
+    "-SkipDependencyAutoRelaunch"
+  )
+
+  if ($CreateStartupTask) {
+    $argumentParts += '-CreateStartupTask'
+  }
+
+  $command = $argumentParts -join ' '
+  Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoExit', '-ExecutionPolicy', 'Bypass', '-Command', $command) | Out-Null
+}
+
 function Ensure-Dependencies() {
   $dependencies = @(
-    @{ Name = 'git'; Label = 'Git'; WingetId = 'Git.Git' },
     @{ Name = 'node'; Label = 'Node.js'; WingetId = 'OpenJS.NodeJS.LTS' },
     @{ Name = 'npm'; Label = 'npm'; WingetId = 'OpenJS.NodeJS.LTS' }
   )
 
   $missing = @($dependencies | Where-Object { -not (Resolve-CommandPath $_.Name) })
   if (-not $missing.Count) {
-    $script:GitCommand = Resolve-CommandPath 'git'
     $script:NodeCommand = Resolve-CommandPath 'node'
     $script:NpmCommand = Resolve-CommandPath 'npm'
     return
@@ -94,18 +129,44 @@ function Ensure-Dependencies() {
     Install-DependencyWithWinget $dep.WingetId $dep.Label
   }
 
-  Refresh-ProcessPath
-  $stillMissing = @($dependencies | Where-Object { -not (Resolve-CommandPath $_.Name) })
+  $stillMissing = Wait-ForDependencies -Dependencies $dependencies
   if ($stillMissing.Count) {
-    throw (T "Installation unvollstaendig. Weiterhin fehlend: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Bitte neues Terminal oeffnen und Setup erneut starten." "Installation incomplete. Still missing: $(($stillMissing | ForEach-Object { $_.Label }) -join ', '). Please open a new terminal and rerun setup.")
+    if (-not $SkipDependencyAutoRelaunch) {
+      Write-Warning (T "Abhaengigkeiten wurden installiert, aber noch nicht in der aktuellen Shell erkannt. Installer wird in neuem Terminal fortgesetzt..." "Dependencies were installed but are not fully visible in the current shell yet. Continuing installer in a new terminal...")
+      Start-InstallerInNewTerminal
+      throw (T "Installer in neuem Terminal gestartet. Dieses Fenster kann geschlossen werden." "Installer started in a new terminal. You can close this window.")
+    }
+
+    throw (T "Installation unvollstaendig. Weiterhin fehlend: $(($stillMissing | ForEach-Object { $_.Label }) -join ', ')." "Installation incomplete. Still missing: $(($stillMissing | ForEach-Object { $_.Label }) -join ', ').")
   }
 
-  $script:GitCommand = Resolve-CommandPath 'git'
   $script:NodeCommand = Resolve-CommandPath 'node'
   $script:NpmCommand = Resolve-CommandPath 'npm'
 }
 
 
+
+function Install-ProjectFromArchive([string]$RepoUrl, [string]$Branch, [string]$InstallPath) {
+  $repoBaseUrl = $RepoUrl -replace '\.git$', ''
+  $archiveUrl = "$repoBaseUrl/archive/refs/heads/$Branch.zip"
+  $tempZip = Join-Path $env:TEMP "ark-panel-$Branch-$([System.Guid]::NewGuid().ToString('N')).zip"
+  $extractRoot = Join-Path $env:TEMP "ark-panel-extract-$([System.Guid]::NewGuid().ToString('N'))"
+
+  try {
+    Invoke-WebRequest -Uri $archiveUrl -OutFile $tempZip -UseBasicParsing
+    Expand-Archive -Path $tempZip -DestinationPath $extractRoot -Force
+    $sourceDir = Get-ChildItem -Path $extractRoot -Directory | Select-Object -First 1
+    if (-not $sourceDir) {
+      throw (T "Archiv konnte nicht entpackt werden." "Archive could not be extracted.")
+    }
+
+    Copy-Item -Path (Join-Path $sourceDir.FullName '*') -Destination $InstallPath -Recurse -Force
+  }
+  finally {
+    if (Test-Path $tempZip) { Remove-Item $tempZip -Force }
+    if (Test-Path $extractRoot) { Remove-Item $extractRoot -Recurse -Force }
+  }
+}
 
 function Resolve-InstallPath([string]$CurrentInstallPath) {
   if ($script:IsInstallPathUserProvided) {
@@ -179,11 +240,11 @@ function Resolve-PanelConnection([hashtable]$EnvSettings) {
     }
   }
 
-  $host = '127.0.0.1'
+  $panelHost = '127.0.0.1'
   if ($EnvSettings.ContainsKey('HOST') -and $EnvSettings['HOST']) {
     $configuredHost = $EnvSettings['HOST']
     if ($configuredHost -notin @('0.0.0.0', '::')) {
-      $host = $configuredHost
+      $panelHost = $configuredHost
     }
   }
 
@@ -193,8 +254,8 @@ function Resolve-PanelConnection([hashtable]$EnvSettings) {
   }
 
   $scheme = if ($httpsEnabled) { 'https' } else { 'http' }
-  $url = "${scheme}://${host}:$port"
-  return @{ Host = $host; Port = $port; HttpsEnabled = $httpsEnabled; Url = $url }
+  $url = "${scheme}://${panelHost}:$port"
+  return @{ Host = $panelHost; Port = $port; HttpsEnabled = $httpsEnabled; Url = $url }
 }
 
 function Test-TcpPortOpen([string]$Host, [int]$Port, [int]$TimeoutMs = 4000) {
@@ -231,6 +292,7 @@ function New-RandomSecret([int]$Bytes = 32) {
 }
 
 Ensure-Dependencies
+$script:GitCommand = Resolve-CommandPath 'git'
 $InstallPath = Resolve-InstallPath $InstallPath
 Ensure-FreeDiskSpace -TargetPath $InstallPath -MinFreeGb 2
 
@@ -248,18 +310,26 @@ if (-not $installPathExists) {
   New-Item -ItemType Directory -Path $InstallPath | Out-Null
 }
 
-if (-not (Test-Path $gitDir)) {
-  & $script:GitCommand clone --depth 1 --branch $Branch $RepoUrl $InstallPath
-}
+if ($script:GitCommand) {
+  if (-not (Test-Path $gitDir)) {
+    & $script:GitCommand clone --depth 1 --branch $Branch $RepoUrl $InstallPath
+  }
 
-Set-Location $InstallPath
-
-& $script:GitCommand fetch origin
-if (Test-RemoteBranchExists $Branch) {
-  & $script:GitCommand checkout $Branch
-  & $script:GitCommand reset --hard "origin/$Branch"
+  Set-Location $InstallPath
+  & $script:GitCommand fetch origin
+  if (Test-RemoteBranchExists $Branch) {
+    & $script:GitCommand checkout $Branch
+    & $script:GitCommand reset --hard "origin/$Branch"
+  } else {
+    throw (T "Remote-Branch '$Branch' wurde nicht gefunden." "Remote branch '$Branch' was not found.")
+  }
 } else {
-  throw (T "Remote-Branch '$Branch' wurde nicht gefunden." "Remote branch '$Branch' was not found.")
+  if ($installPathExists -and (Get-ChildItem -Force -Path $InstallPath | Measure-Object).Count -gt 0) {
+    throw (T "Ohne Git muss der Installationsordner leer sein: $InstallPath" "Without Git the install directory must be empty: $InstallPath")
+  }
+
+  Install-ProjectFromArchive -RepoUrl $RepoUrl -Branch $Branch -InstallPath $InstallPath
+  Set-Location $InstallPath
 }
 
 & $script:NpmCommand install --omit=dev --no-audit --no-fund
