@@ -1,14 +1,26 @@
 const fs = require('fs');
+const path = require('path');
 const { spawnSync } = require('child_process');
 const pkg = require('../../package.json');
 const defaults = require('../config/defaults');
+const store = require('./store');
 
 function getPanelVersion() {
   return pkg.version;
 }
 
 function getServerBuildInfo() {
-  const exe = defaults.asa.exe;
+  const settings = store.getSettings();
+  const roots = [
+    settings?.detectedServer?.root,
+    defaults.asa.root,
+    defaults.asa.configDir ? path.resolve(defaults.asa.configDir, '..', '..', '..', '..') : null
+  ].filter(Boolean);
+  const exeCandidates = [
+    defaults.asa.exe,
+    ...roots.map((root) => path.join(root, 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe'))
+  ];
+  const exe = exeCandidates.find((candidate) => candidate && fs.existsSync(candidate)) || defaults.asa.exe;
   if (!fs.existsSync(exe)) {
     return { installed: false, version: null, file: exe };
   }
