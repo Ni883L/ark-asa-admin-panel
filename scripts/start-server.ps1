@@ -10,5 +10,5 @@ if ($serviceName) {
   }
 }
 if (-not $CommandLine) { throw 'Keine Startzeile übergeben.' }
-Start-Process -FilePath 'powershell' -ArgumentList "-NoProfile -Command $CommandLine"
+Start-Process -FilePath 'powershell' -ArgumentList "-NoProfile -WindowStyle Hidden -Command $CommandLine" -WindowStyle Hidden
 Write-Output 'process start triggered'
