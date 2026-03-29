@@ -137,6 +137,90 @@ function renderWizardDetection(result) {
   return lines.join('\n');
 }
 
+function setFeedback(message, type = 'info') {
+  const el = document.getElementById('actionFeedback');
+  if (!el) return;
+  const textEl = document.getElementById('actionFeedbackText');
+  if (!message) {
+    el.className = 'feedback hidden';
+    if (textEl) textEl.textContent = '';
+    return;
+  }
+
+  el.className = `feedback ${type}`;
+  if (textEl) {
+    textEl.textContent = message;
+  } else {
+    el.textContent = message;
+  }
+}
+
+
+function setActionLog(actionLabel, result) {
+  const logEl = document.getElementById('actionLog');
+  if (!logEl) return;
+
+  const stdout = String(result?.stdout || '').trim();
+  const stderr = String(result?.stderr || '').trim();
+  const lines = [
+    `[${new Date().toLocaleString()}] ${actionLabel}`,
+    stdout ? `STDOUT:\n${stdout}` : 'STDOUT: (leer)',
+    stderr ? `STDERR:\n${stderr}` : 'STDERR: (leer)'
+  ];
+  logEl.textContent = lines.join('\n\n');
+}
+
+function renderAccessHint() {
+  const hint = document.getElementById('accessHint');
+  if (!hint || !bootstrapState?.appBinding) return;
+
+  const { host, port, httpsEnabled } = bootstrapState.appBinding;
+  const scheme = httpsEnabled ? 'https' : 'http';
+  const ips = bootstrapState.localIps || [];
+  if (host === '0.0.0.0' || host === '::') {
+    if (ips.length) {
+      hint.textContent = `LAN-Zugriff aktiv: ${ips.map((ip) => `${scheme}://${ip}:${port}`).join(' | ')}`;
+    } else {
+      hint.textContent = `LAN-Zugriff aktiv: ${scheme}://<server-ip>:${port}`;
+    }
+  } else {
+    hint.textContent = `LAN-Zugriff ist aktuell nicht aktiv (HOST=${host}). Für LAN setze HOST=0.0.0.0 und starte den Webdienst neu.`;
+  }
+}
+
+
+
+
+async function withBusy(button, fn) {
+  if (!button) return fn();
+  const originalText = button.textContent;
+  const progress = document.getElementById('actionProgress');
+  button.disabled = true;
+  button.textContent = 'Bitte warten...';
+  if (progress) progress.classList.remove('hidden');
+  try {
+    return await fn();
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+    if (progress) progress.classList.add('hidden');
+  }
+}
+
+function renderWizardDetection(result) {
+  const lines = [
+    `ASA-Pfad: ${result.root}`,
+    `Ordner vorhanden: ${result.exists ? 'Ja' : 'Nein'}`,
+    `Server-EXE gefunden: ${result.exeExists ? 'Ja' : 'Nein'}`,
+    `Config-Verzeichnis gefunden: ${result.configExists ? 'Ja' : 'Nein'}`,
+    `Logdatei gefunden: ${result.logExists ? 'Ja' : 'Nein'}`,
+    '',
+    'Details:',
+    JSON.stringify(result, null, 2)
+  ];
+  return lines.join('\n');
+}
+
 async function api(url, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (csrfToken) headers['x-csrf-token'] = csrfToken;
