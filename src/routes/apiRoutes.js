@@ -20,6 +20,31 @@ const auditService = require('../services/auditService');
 const userAdminService = require('../services/userAdminService');
 
 const router = express.Router();
+const envFilePath = path.resolve(process.cwd(), '.env');
+
+function readPanelEnv() {
+  const map = {};
+  if (!fs.existsSync(envFilePath)) return map;
+  for (const line of fs.readFileSync(envFilePath, 'utf8').split(/\r?\n/)) {
+    if (!line || line.trim().startsWith('#') || !line.includes('=')) continue;
+    const [k, ...rest] = line.split('=');
+    map[k.trim()] = rest.join('=').trim();
+  }
+  return map;
+}
+
+function writePanelEnv(updates = {}) {
+  const existing = readPanelEnv();
+  const merged = { ...existing, ...updates };
+  const order = ['HOST', 'PORT', 'HTTPS_ENABLED'];
+  const keys = Array.from(new Set([...order, ...Object.keys(merged)]));
+  const content = keys
+    .filter((key) => merged[key] !== undefined && merged[key] !== null && String(merged[key]).length > 0)
+    .map((key) => `${key}=${merged[key]}`)
+    .join('\n');
+  fs.writeFileSync(envFilePath, `${content}\n`, 'utf8');
+  return merged;
+}
 
 router.use((req, res, next) => {
   try {
@@ -32,18 +57,28 @@ router.use((req, res, next) => {
 
 router.get('/bootstrap', (_req, res) => {
   const wizard = setupService.getWizardState();
+  const localIps = Object.values(os.networkInterfaces())
+    .flat()
+    .filter((entry) => entry && entry.family === 'IPv4' && !entry.internal)
+    .map((entry) => entry.address);
   res.json({
     ...wizard,
     appName: defaults.app.name,
     host: os.hostname(),
-    version: require('../../package.json').version
+    version: require('../../package.json').version,
+    appBinding: {
+      host: defaults.app.host,
+      port: defaults.app.port,
+      httpsEnabled: defaults.app.httpsEnabled
+    },
+    localIps
   });
 });
 
-router.post('/bootstrap', (req, res) => {
+router.post('/bootstrap', async (req, res) => {
   try {
     authService.requireRole(req, ['admin']);
-    const settings = setupService.completeWizard(req.body || {});
+    const settings = await setupService.completeWizard(req.body || {});
     res.json({ ok: true, settings });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -154,12 +189,69 @@ router.post('/actions/panel-update', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+router.post('/actions/panel-restart', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const result = await asaService.restartPanelService();
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.post('/actions/panel-firewall-check', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const port = Number(req.body?.port || defaults.app.port || 3000);
+    res.json({ ok: true, result: await asaService.checkPanelFirewall(port) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.post('/actions/panel-firewall-open', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const port = Number(req.body?.port || defaults.app.port || 3000);
+    res.json({ ok: true, result: await asaService.openPanelFirewall(port) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.get('/actions/panel-autostart-status', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json({ ok: true, result: await asaService.getPanelAutostartStatus() });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.post('/actions/panel-autostart', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const enabled = !!req.body?.enabled;
+    res.json({ ok: true, result: await asaService.setPanelAutostart(enabled) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/actions/asa-update-check', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const check = await asaService.checkForServerUpdate();
+    let autoUpdated = false;
+    if (check.updateAvailable && store.getSettings().autoAsaUpdate === true) {
+      await asaService.installOrUpdateServer();
+      autoUpdated = true;
+    }
+    res.json({ ok: true, check, autoUpdated });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/actions/asa-update', async (req, res) => {
   try {
     authService.requireRole(req, ['admin']);
-    if (store.getSettings().autoBackupBeforeUpdate !== false) {
-      await backupService.createBackup('pre-update');
-    }
     const result = await asaService.installOrUpdateServer();
     await webhookService.notify('ASA-Update', 'Serverdateien wurden installiert/aktualisiert.');
     res.json({ ok: true, ...result });
@@ -208,6 +300,32 @@ router.post('/settings', (req, res) => {
     const settings = { ...store.getSettings(), ...req.body };
     store.saveSettings(settings);
     res.json({ ok: true, settings });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+router.get('/panel-env', (_req, res) => {
+  const env = readPanelEnv();
+  res.json({
+    host: env.HOST || defaults.app.host,
+    port: Number(env.PORT || defaults.app.port),
+    httpsEnabled: ['1', 'true', 'yes', 'on'].includes(String(env.HTTPS_ENABLED || defaults.app.httpsEnabled).toLowerCase())
+  });
+});
+router.post('/panel-env', (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const host = String(req.body.host || '127.0.0.1').trim();
+    const port = Number(req.body.port || 3000);
+    const httpsEnabled = !!req.body.httpsEnabled;
+    if (!host) throw new Error('HOST darf nicht leer sein.');
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT muss zwischen 1 und 65535 liegen.');
+    writePanelEnv({
+      HOST: host,
+      PORT: String(port),
+      HTTPS_ENABLED: httpsEnabled ? 'true' : 'false'
+    });
+    res.json({ ok: true, message: 'Panel-Variablen gespeichert. Neustart erforderlich.' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
