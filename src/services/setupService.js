@@ -3,6 +3,7 @@ const path = require('path');
 const defaults = require('../config/defaults');
 const store = require('./store');
 const logger = require('./logger');
+const powershell = require('./powershell');
 const { sanitizePath } = require('../util/validators');
 
 function detectServerRoot(candidatePath) {
@@ -38,7 +39,7 @@ function getWizardState() {
   };
 }
 
-function completeWizard(payload) {
+async function completeWizard(payload) {
   const detection = detectServerRoot(payload.asaRoot);
   const next = {
     ...store.getSettings(),
@@ -49,8 +50,19 @@ function completeWizard(payload) {
     autoBackupBeforeUpdate: payload.autoBackupBeforeUpdate !== false,
     backupRetention: Number(payload.backupRetention || 14)
   };
+  const steamCmdCheck = { checkedAt: new Date().toISOString(), ok: false, message: '' };
+  try {
+    const result = await powershell.run('steamcmd-install-or-update.ps1', ['-OnlyEnsureSteamCmd', '-InstallDir', detection.root]);
+    steamCmdCheck.ok = true;
+    steamCmdCheck.message = result.stdout || 'SteamCMD ist bereit.';
+  } catch (error) {
+    steamCmdCheck.ok = false;
+    steamCmdCheck.message = error.message;
+  }
+
+  next.steamCmdCheck = steamCmdCheck;
   store.saveSettings(next);
-  logger.audit('system', 'setup-complete', { root: detection.root });
+  logger.audit('system', 'setup-complete', { root: detection.root, steamCmdOk: steamCmdCheck.ok });
   return next;
 }
 
