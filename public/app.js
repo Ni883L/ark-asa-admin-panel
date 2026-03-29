@@ -50,92 +50,43 @@ const gameSettingsCatalog = [
     key: 'BabyMatureSpeedMultiplier',
     description: 'Aufzuchtgeschwindigkeit (größer = schneller erwachsen).',
     example: 'BabyMatureSpeedMultiplier=10.0'
+  },
+  {
+    ini: 'GameUserSettings.ini',
+    section: '[ServerSettings]',
+    key: 'HarvestAmountMultiplier',
+    description: 'Ressourcenmenge pro Erntevorgang.',
+    example: 'HarvestAmountMultiplier=2.0'
+  },
+  {
+    ini: 'GameUserSettings.ini',
+    section: '[ServerSettings]',
+    key: 'TamingSpeedMultiplier',
+    description: 'Zähmgeschwindigkeit (höher = schneller zähmen).',
+    example: 'TamingSpeedMultiplier=3.0'
+  },
+  {
+    ini: 'GameUserSettings.ini',
+    section: '[ServerSettings]',
+    key: 'AllowFlyerCarryPvE',
+    description: 'Flieger dürfen in PvE Kreaturen tragen.',
+    example: 'AllowFlyerCarryPvE=True'
+  },
+  {
+    ini: 'GameUserSettings.ini',
+    section: '[ServerSettings]',
+    key: 'ShowMapPlayerLocation',
+    description: 'Spielerposition auf der Map anzeigen.',
+    example: 'ShowMapPlayerLocation=True'
+  },
+  {
+    ini: 'Engine.ini',
+    section: '[/Script/Engine.GameSession]',
+    key: 'MaxPlayers',
+    description: 'Maximale Spieleranzahl auf dem Server.',
+    example: 'MaxPlayers=70'
   }
 ];
-
-function setFeedback(message, type = 'info') {
-  const el = document.getElementById('actionFeedback');
-  if (!el) return;
-  const textEl = document.getElementById('actionFeedbackText');
-  if (!message) {
-    el.className = 'feedback hidden';
-    if (textEl) textEl.textContent = '';
-    return;
-  }
-
-  el.className = `feedback ${type}`;
-  if (textEl) {
-    textEl.textContent = message;
-  } else {
-    el.textContent = message;
-  }
-}
-
-
-function setActionLog(actionLabel, result) {
-  const logEl = document.getElementById('actionLog');
-  if (!logEl) return;
-
-  const stdout = String(result?.stdout || '').trim();
-  const stderr = String(result?.stderr || '').trim();
-  const lines = [
-    `[${new Date().toLocaleString()}] ${actionLabel}`,
-    stdout ? `STDOUT:\n${stdout}` : 'STDOUT: (leer)',
-    stderr ? `STDERR:\n${stderr}` : 'STDERR: (leer)'
-  ];
-  logEl.textContent = lines.join('\n\n');
-}
-
-function renderAccessHint() {
-  const hint = document.getElementById('accessHint');
-  if (!hint || !bootstrapState?.appBinding) return;
-
-  const { host, port, httpsEnabled } = bootstrapState.appBinding;
-  const scheme = httpsEnabled ? 'https' : 'http';
-  const ips = bootstrapState.localIps || [];
-  if (host === '0.0.0.0' || host === '::') {
-    if (ips.length) {
-      hint.textContent = `LAN-Zugriff aktiv: ${ips.map((ip) => `${scheme}://${ip}:${port}`).join(' | ')}`;
-    } else {
-      hint.textContent = `LAN-Zugriff aktiv: ${scheme}://<server-ip>:${port}`;
-    }
-  } else {
-    hint.textContent = `LAN-Zugriff ist aktuell nicht aktiv (HOST=${host}). Für LAN setze HOST=0.0.0.0 und starte den Webdienst neu.`;
-  }
-}
-
-
-
-
-async function withBusy(button, fn) {
-  if (!button) return fn();
-  const originalText = button.textContent;
-  const progress = document.getElementById('actionProgress');
-  button.disabled = true;
-  button.textContent = 'Bitte warten...';
-  if (progress) progress.classList.remove('hidden');
-  try {
-    return await fn();
-  } finally {
-    button.disabled = false;
-    button.textContent = originalText;
-    if (progress) progress.classList.add('hidden');
-  }
-}
-
-function renderWizardDetection(result) {
-  const lines = [
-    `ASA-Pfad: ${result.root}`,
-    `Ordner vorhanden: ${result.exists ? 'Ja' : 'Nein'}`,
-    `Server-EXE gefunden: ${result.exeExists ? 'Ja' : 'Nein'}`,
-    `Config-Verzeichnis gefunden: ${result.configExists ? 'Ja' : 'Nein'}`,
-    `Logdatei gefunden: ${result.logExists ? 'Ja' : 'Nein'}`,
-    '',
-    'Details:',
-    JSON.stringify(result, null, 2)
-  ];
-  return lines.join('\n');
-}
 
 function setFeedback(message, type = 'info') {
   const el = document.getElementById('actionFeedback');
@@ -260,13 +211,20 @@ function setMainTab(tab) {
 function renderGameSettingsHelp() {
   const target = document.getElementById('gameSettingsHelp');
   if (!target) return;
-  target.innerHTML = gameSettingsCatalog.map((entry, index) => `
+  const filter = (document.getElementById('gameSettingsFilter')?.value || '').trim().toLowerCase();
+  const rows = gameSettingsCatalog
+    .map((entry, index) => ({ ...entry, index }))
+    .filter((entry) => {
+      if (!filter) return true;
+      return `${entry.key} ${entry.description} ${entry.ini} ${entry.section}`.toLowerCase().includes(filter);
+    });
+  target.innerHTML = rows.map((entry) => `
     <div class="item">
       <strong>${entry.key}</strong>
       <div class="hint">${entry.description}</div>
-      <div><code>${entry.section}</code></div>
+      <div><code>${entry.ini}</code> · <code>${entry.section}</code></div>
       <div><code>${entry.example}</code></div>
-      <button type="button" data-insert-setting="${index}">In Editor einfügen</button>
+      <button type="button" data-insert-setting="${entry.index}">In Editor einfügen</button>
     </div>
   `).join('');
 
@@ -286,7 +244,20 @@ function renderGameSettingsHelp() {
       }
       editor.value = `${content.trimEnd()}\n${line}\n`;
       setFeedback(`${entry.key} als Beispiel in den Editor eingefügt.`, 'success');
+      switchConfigMode('editor');
     });
+  }
+}
+
+function switchConfigMode(mode) {
+  const editorPanel = document.getElementById('configModeEditor');
+  const catalogPanel = document.getElementById('configModeCatalog');
+  if (!editorPanel || !catalogPanel) return;
+  const editorActive = mode === 'editor';
+  editorPanel.classList.toggle('hidden', !editorActive);
+  catalogPanel.classList.toggle('hidden', editorActive);
+  for (const button of document.querySelectorAll('[data-config-mode]')) {
+    button.classList.toggle('active', button.dataset.configMode === mode);
   }
 }
 
@@ -607,6 +578,18 @@ document.getElementById('saveConfigBtn').addEventListener('click', async () => {
     setFeedback(error.message, 'error');
   }
 });
+
+document.getElementById('configEditor')?.addEventListener('keydown', async (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+    event.preventDefault();
+    document.getElementById('saveConfigBtn').click();
+  }
+});
+
+for (const button of document.querySelectorAll('[data-config-mode]')) {
+  button.addEventListener('click', () => switchConfigMode(button.dataset.configMode));
+}
+document.getElementById('gameSettingsFilter')?.addEventListener('input', () => renderGameSettingsHelp());
 
 for (const button of document.querySelectorAll('[data-config]')) {
   button.addEventListener('click', async () => {

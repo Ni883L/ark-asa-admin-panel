@@ -103,11 +103,20 @@
               <button data-config="Game.ini">Game.ini</button>
               <button data-config="Engine.ini">Engine.ini</button>
             </div>
-            <textarea id="configEditor" rows="16"></textarea>
-            <div class="settings-helper">
-              <h3>GameSettings-Assistent</h3>
-              <p class="section-hint">Vordefinierte Einstellungen mit Erklärung und Beispiel – per Klick in den Editor einfügen.</p>
-              <div id="gameSettingsHelp" class="item-list"></div>
+            <div class="tabs config-mode-tabs">
+              <button type="button" class="active" data-config-mode="editor">INI-Editor</button>
+              <button type="button" data-config-mode="catalog">GameSettings-Katalog</button>
+            </div>
+            <div id="configModeEditor" class="config-mode-panel">
+              <textarea id="configEditor" rows="16"></textarea>
+            </div>
+            <div id="configModeCatalog" class="config-mode-panel hidden">
+              <div class="settings-helper">
+                <h3>GameSettings-Katalog</h3>
+                <p class="section-hint">Erklärungen + Beispiele. Klick auf „In Editor einfügen“, dann im INI-Editor speichern.</p>
+                <input id="gameSettingsFilter" placeholder="Nach Schlüssel, Beschreibung oder INI filtern..." />
+                <div id="gameSettingsHelp" class="item-list"></div>
+              </div>
             </div>
             <div class="actions">
               <button id="saveConfigBtn">Config speichern</button>
