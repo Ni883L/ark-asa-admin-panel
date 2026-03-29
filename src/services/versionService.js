@@ -25,12 +25,25 @@ function getServerBuildInfo() {
     return { installed: false, version: null, file: exe };
   }
   const stat = fs.statSync(exe);
-  let version = stat.mtime.toISOString();
+  let version = null;
   if (defaults.asa.logPath && fs.existsSync(defaults.asa.logPath)) {
     const tail = fs.readFileSync(defaults.asa.logPath, 'utf8').split(/\r?\n/).slice(-400).join('\n');
     const match = tail.match(/ASA Version\s+([^\r\n]+)/i);
     if (match && match[1]) version = match[1].trim();
   }
+  if (!version) {
+    const escapedExe = exe.replace(/'/g, "''");
+    const ps = spawnSync('powershell', [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-Command',
+      `(Get-Item '${escapedExe}').VersionInfo.ProductVersion`
+    ], { encoding: 'utf8', timeout: 5000, windowsHide: true });
+    const fileVersion = String(ps.stdout || '').trim();
+    if (ps.status === 0 && fileVersion) version = fileVersion;
+  }
+  if (!version) version = stat.mtime.toISOString();
   return { installed: true, version, file: exe };
 }
 
