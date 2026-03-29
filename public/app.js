@@ -1,6 +1,141 @@
 let csrfToken = null;
 let currentConfig = 'GameUserSettings.ini';
 let bootstrapState = null;
+const gameSettingsCatalog = [
+  {
+    ini: 'GameUserSettings.ini',
+    section: '[ServerSettings]',
+    key: 'ServerPassword',
+    description: 'Passwort für normale Spieler beim Join.',
+    example: 'ServerPassword=MeinSicheresPasswort123'
+  },
+  {
+    ini: 'GameUserSettings.ini',
+    section: '[ServerSettings]',
+    key: 'ServerAdminPassword',
+    description: 'Adminpasswort für Ingame-Adminbefehle.',
+    example: 'ServerAdminPassword=MeinAdminPasswort123'
+  },
+  {
+    ini: 'GameUserSettings.ini',
+    section: '[ServerSettings]',
+    key: 'DifficultyOffset',
+    description: 'Grundschwierigkeit (0.2 bis 1.0), beeinflusst Wild-Dino-Level.',
+    example: 'DifficultyOffset=1.0'
+  },
+  {
+    ini: 'GameUserSettings.ini',
+    section: '[ServerSettings]',
+    key: 'XPMultiplier',
+    description: 'XP-Multiplikator für schnelleres/langsameres Leveln.',
+    example: 'XPMultiplier=2.0'
+  },
+  {
+    ini: 'Game.ini',
+    section: '[/Script/ShooterGame.ShooterGameMode]',
+    key: 'MatingIntervalMultiplier',
+    description: 'Paarungsintervall (kleiner = öfteres Paaren).',
+    example: 'MatingIntervalMultiplier=0.2'
+  },
+  {
+    ini: 'Game.ini',
+    section: '[/Script/ShooterGame.ShooterGameMode]',
+    key: 'EggHatchSpeedMultiplier',
+    description: 'Brutgeschwindigkeit von Eiern (größer = schneller).',
+    example: 'EggHatchSpeedMultiplier=10.0'
+  },
+  {
+    ini: 'Game.ini',
+    section: '[/Script/ShooterGame.ShooterGameMode]',
+    key: 'BabyMatureSpeedMultiplier',
+    description: 'Aufzuchtgeschwindigkeit (größer = schneller erwachsen).',
+    example: 'BabyMatureSpeedMultiplier=10.0'
+  }
+];
+
+function setFeedback(message, type = 'info') {
+  const el = document.getElementById('actionFeedback');
+  if (!el) return;
+  const textEl = document.getElementById('actionFeedbackText');
+  if (!message) {
+    el.className = 'feedback hidden';
+    if (textEl) textEl.textContent = '';
+    return;
+  }
+
+  el.className = `feedback ${type}`;
+  if (textEl) {
+    textEl.textContent = message;
+  } else {
+    el.textContent = message;
+  }
+}
+
+
+function setActionLog(actionLabel, result) {
+  const logEl = document.getElementById('actionLog');
+  if (!logEl) return;
+
+  const stdout = String(result?.stdout || '').trim();
+  const stderr = String(result?.stderr || '').trim();
+  const lines = [
+    `[${new Date().toLocaleString()}] ${actionLabel}`,
+    stdout ? `STDOUT:\n${stdout}` : 'STDOUT: (leer)',
+    stderr ? `STDERR:\n${stderr}` : 'STDERR: (leer)'
+  ];
+  logEl.textContent = lines.join('\n\n');
+}
+
+function renderAccessHint() {
+  const hint = document.getElementById('accessHint');
+  if (!hint || !bootstrapState?.appBinding) return;
+
+  const { host, port, httpsEnabled } = bootstrapState.appBinding;
+  const scheme = httpsEnabled ? 'https' : 'http';
+  const ips = bootstrapState.localIps || [];
+  if (host === '0.0.0.0' || host === '::') {
+    if (ips.length) {
+      hint.textContent = `LAN-Zugriff aktiv: ${ips.map((ip) => `${scheme}://${ip}:${port}`).join(' | ')}`;
+    } else {
+      hint.textContent = `LAN-Zugriff aktiv: ${scheme}://<server-ip>:${port}`;
+    }
+  } else {
+    hint.textContent = `LAN-Zugriff ist aktuell nicht aktiv (HOST=${host}). Für LAN setze HOST=0.0.0.0 und starte den Webdienst neu.`;
+  }
+}
+
+
+
+
+async function withBusy(button, fn) {
+  if (!button) return fn();
+  const originalText = button.textContent;
+  const progress = document.getElementById('actionProgress');
+  button.disabled = true;
+  button.textContent = 'Bitte warten...';
+  if (progress) progress.classList.remove('hidden');
+  try {
+    return await fn();
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+    if (progress) progress.classList.add('hidden');
+  }
+}
+
+function renderWizardDetection(result) {
+  const lines = [
+    `ASA-Pfad: ${result.root}`,
+    `Ordner vorhanden: ${result.exists ? 'Ja' : 'Nein'}`,
+    `Server-EXE gefunden: ${result.exeExists ? 'Ja' : 'Nein'}`,
+    `Config-Verzeichnis gefunden: ${result.configExists ? 'Ja' : 'Nein'}`,
+    `Logdatei gefunden: ${result.logExists ? 'Ja' : 'Nein'}`,
+    '',
+    'Details:',
+    JSON.stringify(result, null, 2)
+  ];
+  return lines.join('\n');
+}
 
 function setFeedback(message, type = 'info') {
   const el = document.getElementById('actionFeedback');
@@ -119,6 +254,39 @@ function setMainTab(tab) {
   }
   for (const tabButton of document.querySelectorAll('[data-main-tab]')) {
     tabButton.classList.toggle('active', tabButton.dataset.mainTab === tab);
+  }
+}
+
+function renderGameSettingsHelp() {
+  const target = document.getElementById('gameSettingsHelp');
+  if (!target) return;
+  target.innerHTML = gameSettingsCatalog.map((entry, index) => `
+    <div class="item">
+      <strong>${entry.key}</strong>
+      <div class="hint">${entry.description}</div>
+      <div><code>${entry.section}</code></div>
+      <div><code>${entry.example}</code></div>
+      <button type="button" data-insert-setting="${index}">In Editor einfügen</button>
+    </div>
+  `).join('');
+
+  for (const button of target.querySelectorAll('[data-insert-setting]')) {
+    button.addEventListener('click', () => {
+      const entry = gameSettingsCatalog[Number(button.dataset.insertSetting)];
+      if (!entry) return;
+      if (currentConfig !== entry.ini) {
+        setFeedback(`Hinweis: ${entry.key} gehört zu ${entry.ini}.`, 'info');
+      }
+      const editor = document.getElementById('configEditor');
+      const content = editor.value || '';
+      const line = `${entry.example}`;
+      if (content.includes(line)) {
+        setFeedback(`${entry.key} ist bereits im Editor vorhanden.`, 'info');
+        return;
+      }
+      editor.value = `${content.trimEnd()}\n${line}\n`;
+      setFeedback(`${entry.key} als Beispiel in den Editor eingefügt.`, 'success');
+    });
   }
 }
 
@@ -511,6 +679,7 @@ for (const button of document.querySelectorAll('[data-main-tab]')) {
   button.addEventListener('click', () => setMainTab(button.dataset.mainTab));
 }
 setMainTab('overview');
+renderGameSettingsHelp();
 
 if (localStorage.getItem('topbarCollapsed') === '1') {
   const topbar = document.querySelector('.topbar');

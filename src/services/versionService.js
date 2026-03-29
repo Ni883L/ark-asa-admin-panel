@@ -25,7 +25,13 @@ function getServerBuildInfo() {
     return { installed: false, version: null, file: exe };
   }
   const stat = fs.statSync(exe);
-  return { installed: true, version: stat.mtime.toISOString(), file: exe };
+  let version = stat.mtime.toISOString();
+  if (defaults.asa.logPath && fs.existsSync(defaults.asa.logPath)) {
+    const tail = fs.readFileSync(defaults.asa.logPath, 'utf8').split(/\r?\n/).slice(-400).join('\n');
+    const match = tail.match(/ASA Version\s+([^\r\n]+)/i);
+    if (match && match[1]) version = match[1].trim();
+  }
+  return { installed: true, version, file: exe };
 }
 
 function getUpdateInfo() {

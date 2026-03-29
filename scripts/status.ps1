@@ -34,6 +34,15 @@ if (-not $status -or $status -eq 'stopped') {
 }
 
 if (-not $proc) {
+  $cimProc = Get-CimInstance Win32_Process -Filter "Name='ArkAscendedServer.exe'" -ErrorAction SilentlyContinue |
+    Sort-Object CreationDate -Descending |
+    Select-Object -First 1
+  if ($cimProc) {
+    $proc = Get-Process -Id $cimProc.ProcessId -ErrorAction SilentlyContinue
+  }
+}
+
+if (-not $proc) {
   $proc = Get-Process -ErrorAction SilentlyContinue |
     Where-Object {
       $_.ProcessName -like '*ArkAscendedServer*' -or
