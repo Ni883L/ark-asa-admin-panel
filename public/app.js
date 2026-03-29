@@ -170,7 +170,7 @@ async function loadConfig(name = currentConfig) {
 }
 
 async function refreshDashboard() {
-  const [data, profiles, health, versions, tasks, users, audit, panelEnv] = await Promise.all([
+  const [data, profiles, health, versions, tasks, users, audit, panelEnv, autostart] = await Promise.all([
     api('/api/dashboard'),
     api('/api/profiles'),
     api('/api/health'),
@@ -178,7 +178,8 @@ async function refreshDashboard() {
     api('/api/tasks'),
     api('/api/users'),
     api('/api/audit'),
-    api('/api/panel-env')
+    api('/api/panel-env'),
+    api('/api/actions/panel-autostart-status')
   ]);
 
   renderStats(data.status, data.metrics);
@@ -192,6 +193,7 @@ async function refreshDashboard() {
   document.getElementById('panelPortInput').value = panelEnv.port || 3000;
   document.getElementById('panelHttpsInput').checked = !!panelEnv.httpsEnabled;
   document.getElementById('autoAsaUpdateInput').checked = !!data.settings.autoAsaUpdate;
+  document.getElementById('panelAutostartInput').checked = !!autostart?.result?.enabled;
   document.getElementById('healthInfo').textContent = JSON.stringify(health, null, 2);
   document.getElementById('versionInfo').textContent = JSON.stringify(versions, null, 2);
   document.getElementById('tasksEditor').value = JSON.stringify(tasks.tasks || [], null, 2);
@@ -380,6 +382,20 @@ document.getElementById('openFirewallBtn').addEventListener('click', async () =>
       return;
     }
     setFeedback(`Firewall-Freigabe fehlgeschlagen: ${error.message}`, 'error');
+  }
+});
+
+document.getElementById('saveAutostartBtn').addEventListener('click', async () => {
+  const enabled = document.getElementById('panelAutostartInput').checked;
+  try {
+    await api('/api/actions/panel-autostart', {
+      method: 'POST',
+      body: JSON.stringify({ enabled })
+    });
+    setFeedback(enabled ? 'Autostart-Dienst wurde installiert/aktiviert.' : 'Autostart-Dienst wurde deaktiviert/entfernt.', 'success');
+    await refreshDashboard();
+  } catch (error) {
+    setFeedback(`Autostart konnte nicht geändert werden: ${error.message}`, 'error');
   }
 });
 

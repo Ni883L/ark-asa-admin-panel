@@ -214,6 +214,18 @@ async function openPanelFirewall(port) {
   return JSON.parse(result.stdout || '{}');
 }
 
+async function getPanelAutostartStatus() {
+  const result = await powershell.run('panel-autostart.ps1', ['-Mode', 'Status']);
+  return JSON.parse(result.stdout || '{}');
+}
+
+async function setPanelAutostart(enabled) {
+  const mode = enabled ? 'Enable' : 'Disable';
+  const result = await powershell.run('panel-autostart.ps1', ['-Mode', mode]);
+  logger.audit('system', 'panel-autostart', { enabled: !!enabled });
+  return JSON.parse(result.stdout || '{}');
+}
+
 module.exports = {
   getProfileSummary,
   saveProfiles,
@@ -230,5 +242,7 @@ module.exports = {
   restartPanelService,
   checkPanelFirewall,
   openPanelFirewall,
+  getPanelAutostartStatus,
+  setPanelAutostart,
   getProfileCommand
 };

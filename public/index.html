@@ -122,11 +122,13 @@
               <label>Panel Port (PORT)<input id="panelPortInput" type="number" min="1" max="65535" value="3000" /></label>
               <label class="checkbox-row"><input id="panelHttpsInput" type="checkbox" /> HTTPS aktivieren (HTTPS_ENABLED)</label>
               <label class="checkbox-row"><input id="autoAsaUpdateInput" type="checkbox" /> ASA-Updates automatisch installieren</label>
+              <label class="checkbox-row"><input id="panelAutostartInput" type="checkbox" /> Panel-Dienst Autostart (Windows Task)</label>
               <div class="actions">
                 <button id="savePanelOptionsBtn">Optionen speichern</button>
                 <button id="restartPanelServiceBtn" class="warn">Webdienst neu starten</button>
                 <button id="checkFirewallBtn" type="button">Firewall prüfen</button>
                 <button id="openFirewallBtn" type="button">Firewall-Port freigeben</button>
+                <button id="saveAutostartBtn" type="button">Autostart anwenden</button>
               </div>
             </div>
             <textarea id="settingsEditor" rows="12"></textarea>

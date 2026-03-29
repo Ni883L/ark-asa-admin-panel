@@ -216,6 +216,23 @@ router.post('/actions/panel-firewall-open', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+router.get('/actions/panel-autostart-status', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json({ ok: true, result: await asaService.getPanelAutostartStatus() });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.post('/actions/panel-autostart', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const enabled = !!req.body?.enabled;
+    res.json({ ok: true, result: await asaService.setPanelAutostart(enabled) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 router.post('/actions/asa-update-check', async (req, res) => {
   try {
