@@ -233,6 +233,23 @@ router.post('/actions/panel-autostart', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+router.get('/actions/asa-autostart-status', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    res.json({ ok: true, result: await asaService.getAsaAutostartStatus() });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.post('/actions/asa-autostart', async (req, res) => {
+  try {
+    authService.requireRole(req, ['admin']);
+    const enabled = !!req.body?.enabled;
+    res.json({ ok: true, result: await asaService.setAsaAutostart(enabled) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 router.post('/actions/asa-update-check', async (req, res) => {
   try {

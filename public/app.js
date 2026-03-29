@@ -310,7 +310,7 @@ async function loadConfig(name = currentConfig) {
 }
 
 async function refreshDashboard() {
-  const [data, profiles, health, versions, tasks, users, audit, panelEnv, autostart] = await Promise.all([
+  const [data, profiles, health, versions, tasks, users, audit, panelEnv, autostart, asaAutostart] = await Promise.all([
     api('/api/dashboard'),
     api('/api/profiles'),
     api('/api/health'),
@@ -319,7 +319,8 @@ async function refreshDashboard() {
     api('/api/users'),
     api('/api/audit'),
     api('/api/panel-env'),
-    api('/api/actions/panel-autostart-status')
+    api('/api/actions/panel-autostart-status'),
+    api('/api/actions/asa-autostart-status')
   ]);
 
   renderStats(data.status, data.metrics, versions);
@@ -334,6 +335,7 @@ async function refreshDashboard() {
   document.getElementById('panelHttpsInput').checked = !!panelEnv.httpsEnabled;
   document.getElementById('autoAsaUpdateInput').checked = !!data.settings.autoAsaUpdate;
   document.getElementById('panelAutostartInput').checked = !!autostart?.result?.enabled;
+  document.getElementById('asaAutostartInput').checked = !!asaAutostart?.result?.autoStartEnabled;
   document.getElementById('healthInfo').textContent = JSON.stringify(health, null, 2);
   document.getElementById('versionInfo').textContent = JSON.stringify(versions, null, 2);
   document.getElementById('tasksEditor').value = JSON.stringify(tasks.tasks || [], null, 2);
@@ -543,15 +545,33 @@ document.getElementById('openFirewallBtn').addEventListener('click', async () =>
 
 document.getElementById('saveAutostartBtn').addEventListener('click', async () => {
   const enabled = document.getElementById('panelAutostartInput').checked;
+  const asaEnabled = document.getElementById('asaAutostartInput').checked;
   try {
     await api('/api/actions/panel-autostart', {
       method: 'POST',
       body: JSON.stringify({ enabled })
     });
+    await api('/api/actions/asa-autostart', {
+      method: 'POST',
+      body: JSON.stringify({ enabled: asaEnabled })
+    });
     setFeedback(enabled ? 'Autostart-Dienst wurde installiert/aktiviert.' : 'Autostart-Dienst wurde deaktiviert/entfernt.', 'success');
     await refreshDashboard();
   } catch (error) {
     setFeedback(`Autostart konnte nicht geändert werden: ${error.message}`, 'error');
+  }
+});
+
+document.getElementById('repairPanelServiceBtn')?.addEventListener('click', async () => {
+  try {
+    await api('/api/actions/panel-autostart', {
+      method: 'POST',
+      body: JSON.stringify({ enabled: true })
+    });
+    setFeedback('Panel-Dienst wurde neu registriert (Autostart aktiv).', 'success');
+    await refreshDashboard();
+  } catch (error) {
+    setFeedback(`Panel-Dienst Registrierung fehlgeschlagen: ${error.message}`, 'error');
   }
 });
 

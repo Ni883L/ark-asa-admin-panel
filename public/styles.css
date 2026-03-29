@@ -19,7 +19,7 @@ body { margin: 0; font-family: Inter, Segoe UI, Arial, sans-serif; background: r
 .topbar.collapsed { padding: 4px 10px; margin-bottom: 6px; }
 .topbar.collapsed h1, .topbar.collapsed p { display: none; }
 .topbar-actions, .actions, .tabs { display: flex; flex-wrap: wrap; gap: 10px; }
-.main-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 16px; }
+.main-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
 .main-tab {
   background: #253463;
   color: #dbe7ff;
@@ -62,7 +62,9 @@ code { background: #0b1020; padding: 2px 6px; border-radius: 6px; }
 .item-list { display: grid; gap: 10px; }
 .item { background: var(--panel-soft); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
 .settings-helper { margin-top: 12px; }
-.settings-helper .item { display: grid; gap: 6px; }
+.settings-helper .item-list { max-height: 260px; overflow-y: auto; }
+.settings-helper .item { display: grid; gap: 4px; padding: 10px; }
+.settings-helper code { font-size: .82rem; }
 .feedback { margin-top: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid #33406d; background: #0d1430; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .feedback.success { border-color: #166534; background: #052e16; color: #dcfce7; }
 .feedback.error { border-color: #991b1b; background: #3b0a0a; color: #fee2e2; }

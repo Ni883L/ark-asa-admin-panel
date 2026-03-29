@@ -243,6 +243,18 @@ async function setPanelAutostart(enabled) {
   return JSON.parse(result.stdout || '{}');
 }
 
+async function getAsaAutostartStatus() {
+  const result = await powershell.run('asa-autostart.ps1', ['-Mode', 'Status']);
+  return JSON.parse(result.stdout || '{}');
+}
+
+async function setAsaAutostart(enabled) {
+  const mode = enabled ? 'Enable' : 'Disable';
+  const result = await powershell.run('asa-autostart.ps1', ['-Mode', mode]);
+  logger.audit('system', 'asa-autostart', { enabled: !!enabled });
+  return JSON.parse(result.stdout || '{}');
+}
+
 module.exports = {
   getProfileSummary,
   saveProfiles,
@@ -261,5 +273,7 @@ module.exports = {
   openPanelFirewall,
   getPanelAutostartStatus,
   setPanelAutostart,
+  getAsaAutostartStatus,
+  setAsaAutostart,
   getProfileCommand
 };

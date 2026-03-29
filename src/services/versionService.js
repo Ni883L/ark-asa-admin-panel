@@ -21,8 +21,19 @@ function getServerBuildInfo() {
     ...roots.map((root) => path.join(root, 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe'))
   ];
   const exe = exeCandidates.find((candidate) => candidate && fs.existsSync(candidate)) || defaults.asa.exe;
+  const manifestCandidates = roots.map((root) => path.join(root, 'steamapps', `appmanifest_${defaults.asa.appId || '2430930'}.acf`));
+  let installedBuild = null;
+  for (const manifestPath of manifestCandidates) {
+    if (!manifestPath || !fs.existsSync(manifestPath)) continue;
+    const content = fs.readFileSync(manifestPath, 'utf8');
+    const match = content.match(/"buildid"\s+"(\d+)"/i);
+    if (match && match[1]) {
+      installedBuild = match[1];
+      break;
+    }
+  }
   if (!fs.existsSync(exe)) {
-    return { installed: false, version: null, file: exe };
+    return { installed: false, version: installedBuild ? `Build ${installedBuild}` : null, file: exe };
   }
   const stat = fs.statSync(exe);
   let version = null;
@@ -44,6 +55,7 @@ function getServerBuildInfo() {
     if (ps.status === 0 && fileVersion) version = fileVersion;
   }
   if (!version) version = stat.mtime.toISOString();
+  if (installedBuild) version = `${version} (Build ${installedBuild})`;
   return { installed: true, version, file: exe };
 }
 

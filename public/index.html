@@ -40,6 +40,11 @@
           <div>
             <h1>ARK ASA Admin Panel</h1>
             <p id="welcome"></p>
+            <nav class="main-tabs" aria-label="Dashboard Themen">
+              <button class="main-tab active" data-main-tab="overview" type="button">📊 Überblick</button>
+              <button class="main-tab" data-main-tab="config" type="button">⚙️ Konfiguration</button>
+              <button class="main-tab" data-main-tab="operations" type="button">🧰 Betrieb</button>
+            </nav>
           </div>
           <div class="topbar-actions">
             <button id="toggleBannerBtn" class="secondary" type="button">Banner ausblenden</button>
@@ -138,12 +143,14 @@
               <label class="checkbox-row"><input id="panelHttpsInput" type="checkbox" /> HTTPS aktivieren (HTTPS_ENABLED)</label>
               <label class="checkbox-row"><input id="autoAsaUpdateInput" type="checkbox" /> ASA-Updates automatisch installieren</label>
               <label class="checkbox-row"><input id="panelAutostartInput" type="checkbox" /> Panel-Dienst Autostart (Windows Task)</label>
+              <label class="checkbox-row"><input id="asaAutostartInput" type="checkbox" /> ARK-Server-Dienst Auto-Start (Windows Service)</label>
               <div class="actions">
                 <button id="savePanelOptionsBtn">Optionen speichern</button>
                 <button id="restartPanelServiceBtn" class="warn">Webdienst neu starten</button>
                 <button id="checkFirewallBtn" type="button">Firewall prüfen</button>
                 <button id="openFirewallBtn" type="button">Firewall-Port freigeben</button>
                 <button id="saveAutostartBtn" type="button">Autostart anwenden</button>
+                <button id="repairPanelServiceBtn" type="button">Panel-Dienst neu registrieren</button>
               </div>
             </div>
             <textarea id="settingsEditor" rows="12"></textarea>
