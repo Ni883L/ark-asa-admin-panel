@@ -12,7 +12,18 @@ const { spawn } = require('child_process');
 
 function getEffectiveAsaRoot() {
   const settings = store.getSettings();
-  return settings?.detectedServer?.root || defaults.asa.root;
+  const candidates = [
+    settings?.detectedServer?.root,
+    defaults.asa.root,
+    defaults.asa.configDir ? path.resolve(defaults.asa.configDir, '..', '..', '..', '..') : null
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    const exe = path.join(candidate, 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe');
+    if (fs.existsSync(exe)) return candidate;
+  }
+
+  return candidates[0] || defaults.asa.root;
 }
 
 function resolveAsaExePath() {

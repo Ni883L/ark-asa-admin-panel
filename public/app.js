@@ -281,7 +281,15 @@ document.getElementById('completeWizardBtn').addEventListener('click', async () 
 ${result.settings.steamCmdCheck.message}`;
       setFeedback('SteamCMD konnte bei der Einrichtung nicht vorbereitet werden. Details siehe unten.', 'error');
     } else {
-      setFeedback('Einrichtung abgeschlossen. SteamCMD ist bereit.', 'success');
+      const panelFileCheck = result?.settings?.panelFileCheck;
+      if (panelFileCheck && panelFileCheck.ok === false) {
+        const missing = (panelFileCheck.checks || []).filter((item) => !item.exists).map((item) => item.path);
+        document.getElementById('wizardResult').textContent = `Einrichtung abgeschlossen, aber Panel-Datei-Check meldet fehlende Dateien:
+${missing.join('\n') || '(unbekannt)'}`;
+        setFeedback('SteamCMD ist bereit, aber der Panel-Datei-Check meldet fehlende Dateien. Details siehe unten.', 'error');
+      } else {
+        setFeedback('Einrichtung abgeschlossen. SteamCMD und Panel-Datei-Check sind erfolgreich.', 'success');
+      }
     }
 
     await bootstrapAuth();

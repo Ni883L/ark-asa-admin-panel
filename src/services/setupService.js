@@ -6,6 +6,29 @@ const logger = require('./logger');
 const powershell = require('./powershell');
 const { sanitizePath } = require('../util/validators');
 
+function runPanelFileCheck() {
+  const panelRoot = process.cwd();
+  const requiredPaths = [
+    '.env',
+    'package.json',
+    'src/server.js',
+    'public/index.html',
+    'scripts/start-server.ps1',
+    'scripts/update.ps1'
+  ];
+  const checks = requiredPaths.map((relativePath) => {
+    const absolutePath = path.join(panelRoot, relativePath);
+    return { path: relativePath, exists: fs.existsSync(absolutePath) };
+  });
+
+  return {
+    checkedAt: new Date().toISOString(),
+    panelRoot,
+    ok: checks.every((item) => item.exists),
+    checks
+  };
+}
+
 function detectServerRoot(candidatePath) {
   const root = sanitizePath(candidatePath || defaults.asa.root, 'ASA-Serverpfad');
   const exe = path.join(root, 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe');
@@ -60,9 +83,15 @@ async function completeWizard(payload) {
     steamCmdCheck.message = error.message;
   }
 
+  const panelFileCheck = runPanelFileCheck();
   next.steamCmdCheck = steamCmdCheck;
+  next.panelFileCheck = panelFileCheck;
   store.saveSettings(next);
-  logger.audit('system', 'setup-complete', { root: detection.root, steamCmdOk: steamCmdCheck.ok });
+  logger.audit('system', 'setup-complete', {
+    root: detection.root,
+    steamCmdOk: steamCmdCheck.ok,
+    panelFileCheckOk: panelFileCheck.ok
+  });
   return next;
 }
 

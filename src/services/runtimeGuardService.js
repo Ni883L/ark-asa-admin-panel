@@ -4,10 +4,19 @@ const defaults = require('../config/defaults');
 const store = require('./store');
 
 function resolveAsaExePath() {
-  if (defaults.asa.exe && fs.existsSync(defaults.asa.exe)) return defaults.asa.exe;
   const settings = store.getSettings();
-  const effectiveRoot = settings?.detectedServer?.root || defaults.asa.root;
-  return path.join(effectiveRoot, 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe');
+  const roots = [
+    settings?.detectedServer?.root,
+    defaults.asa.root,
+    defaults.asa.configDir ? path.resolve(defaults.asa.configDir, '..', '..', '..', '..') : null
+  ].filter(Boolean);
+
+  if (defaults.asa.exe && fs.existsSync(defaults.asa.exe)) return defaults.asa.exe;
+  for (const root of roots) {
+    const candidate = path.join(root, 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe');
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return path.join((roots[0] || defaults.asa.root), 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe');
 }
 
 function validateRuntimePaths() {
