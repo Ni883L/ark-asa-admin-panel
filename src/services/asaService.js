@@ -20,11 +20,6 @@ function resolveAsaExePath() {
   return path.join(getEffectiveAsaRoot(), 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe');
 }
 
-function resolveAsaExePath() {
-  if (defaults.asa.exe && fs.existsSync(defaults.asa.exe)) return defaults.asa.exe;
-  return path.join(defaults.asa.root, 'ShooterGame', 'Binaries', 'Win64', 'ArkAscendedServer.exe');
-}
-
 function getProfileCommand(profile) {
   if (!profile) return '';
   if (profile.rawCommandLine) return profile.rawCommandLine;

@@ -13,10 +13,12 @@ function resolveAsaExePath() {
 function validateRuntimePaths() {
   const profile = store.getActiveProfile();
   const resolvedExe = resolveAsaExePath();
+  const hasCustomCommandLine = Boolean(profile?.rawCommandLine && String(profile.rawCommandLine).trim());
   const checks = {
     asaRootExists: fs.existsSync(defaults.asa.root),
-    asaExeExists: fs.existsSync(resolvedExe),
+    asaExeExists: hasCustomCommandLine ? true : fs.existsSync(resolvedExe),
     asaExePath: resolvedExe,
+    hasCustomCommandLine,
     configDirExists: fs.existsSync(defaults.asa.configDir),
     logPathExists: fs.existsSync(defaults.asa.logPath),
     savedArksExists: fs.existsSync(defaults.asa.savedArksPath),
@@ -26,7 +28,7 @@ function validateRuntimePaths() {
   const errors = [];
   const warnings = [];
   if (!checks.asaRootExists) errors.push('ASA_SERVER_ROOT nicht gefunden.');
-  if (!checks.asaExeExists && !defaults.asa.serviceName) errors.push('ASA_SERVER_EXE nicht gefunden und kein Dienstname gesetzt.');
+  if (!checks.asaExeExists && !defaults.asa.serviceName) errors.push(`ASA_SERVER_EXE nicht gefunden (${checks.asaExePath}) und kein Dienstname gesetzt.`);
   if (!fs.existsSync(defaults.asa.exe) && checks.asaExeExists) warnings.push(`ASA_SERVER_EXE nicht gefunden, nutze automatisch ${checks.asaExePath}.`);
   if (!checks.configDirExists) errors.push('ASA_CONFIG_DIR nicht gefunden.');
   if (!checks.savedArksExists) warnings.push('ASA_SAVEDARKS_PATH nicht gefunden (Start trotzdem möglich, wird bei Bedarf erstellt).');

@@ -360,6 +360,10 @@ document.getElementById('checkFirewallBtn').addEventListener('click', async () =
       setFeedback(`Firewall-Regel für TCP-Port ${port} fehlt. Bitte Port freigeben.`, 'error');
     }
   } catch (error) {
+    if (error.message.includes('404')) {
+      setFeedback('Firewall-API nicht gefunden (404). Bitte zuerst Panel-Update ausführen und danach den Webdienst neu starten.', 'error');
+      return;
+    }
     setFeedback(`Firewall-Check fehlgeschlagen: ${error.message}`, 'error');
   }
 });
@@ -371,6 +375,10 @@ document.getElementById('openFirewallBtn').addEventListener('click', async () =>
     await api('/api/actions/panel-firewall-open', { method: 'POST', body: JSON.stringify({ port }) });
     setFeedback(`Firewall-Port ${port} wurde freigegeben (oder war bereits offen).`, 'success');
   } catch (error) {
+    if (error.message.includes('404')) {
+      setFeedback('Firewall-API nicht gefunden (404). Bitte zuerst Panel-Update ausführen und danach den Webdienst neu starten.', 'error');
+      return;
+    }
     setFeedback(`Firewall-Freigabe fehlgeschlagen: ${error.message}`, 'error');
   }
 });
@@ -440,7 +448,19 @@ for (const button of document.querySelectorAll('[data-action]')) {
         const confirmPayload = ['asa-update', 'panel-update'].includes(action) ? { confirm: true } : {};
         const result = await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(confirmPayload) });
         setActionLog(`Aktion ${action}`, result);
-        setFeedback(`Aktion '${action}' erfolgreich ausgeführt.`, 'success');
+        if (action === 'panel-update') {
+          setFeedback("Panel-Update erfolgreich. Webdienst wird neu gestartet...", 'info');
+          setTimeout(async () => {
+            try {
+              await api('/api/actions/panel-restart', { method: 'POST', body: JSON.stringify({ confirm: true }) });
+            } catch (_error) {
+              // no-op; page reload below will still happen
+            }
+            window.location.reload();
+          }, 1200);
+        } else {
+          setFeedback(`Aktion '${action}' erfolgreich ausgeführt.`, 'success');
+        }
       }
 
       await refreshDashboard();
