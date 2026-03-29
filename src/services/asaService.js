@@ -111,7 +111,13 @@ async function getStatus() {
 
 async function startServer() {
   ensureRuntimePathsAndIniFiles();
-  const guard = runtimeGuardService.validateRuntimePaths();
+  let guard = runtimeGuardService.validateRuntimePaths();
+  const missingExe = guard.errors.some((entry) => entry.includes('ASA_SERVER_EXE nicht gefunden'));
+  if (!guard.ok && missingExe) {
+    logger.info('ASA executable missing before start; trying SteamCMD install/update once.');
+    await powershell.run('steamcmd-install-or-update.ps1');
+    guard = runtimeGuardService.validateRuntimePaths();
+  }
   if (!guard.ok) throw new Error(`Start abgebrochen: ${guard.errors.join(' | ')}`);
   const profile = store.getActiveProfile();
   const result = await powershell.run('start-server.ps1', [getProfileCommand(profile)]);

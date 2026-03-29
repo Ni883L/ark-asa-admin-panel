@@ -33,6 +33,19 @@ if (-not $status -or $status -eq 'stopped') {
   }
 }
 
+if (-not $proc) {
+  $proc = Get-Process -ErrorAction SilentlyContinue |
+    Where-Object {
+      $_.ProcessName -like '*ArkAscendedServer*' -or
+      $_.Path -like '*ArkAscendedServer.exe'
+    } |
+    Select-Object -First 1
+  if ($proc) {
+    $status = 'running'
+    $lastStart = $proc.StartTime.ToString('s')
+  }
+}
+
 if ($proc) {
   $cpu = [Math]::Round($proc.CPU, 2).ToString() + ' CPU-s'
   $memory = [Math]::Round($proc.WorkingSet64 / 1MB, 0).ToString() + ' MB'

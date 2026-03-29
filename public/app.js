@@ -122,11 +122,12 @@ function setMainTab(tab) {
   }
 }
 
-function renderStats(status, metrics) {
+function renderStats(status, metrics, versions) {
   const target = document.getElementById('statusGrid');
   const fields = {
     Serverstatus: status.status || metrics.status || 'unknown',
     Profil: status.activeProfile?.name || '-',
+    'Spiel-Version': versions?.server?.version || '-',
     CPU: metrics.cpu || '-',
     RAM: metrics.memory || '-',
     Disk: metrics.disk || '-',
@@ -182,7 +183,7 @@ async function refreshDashboard() {
     api('/api/actions/panel-autostart-status')
   ]);
 
-  renderStats(data.status, data.metrics);
+  renderStats(data.status, data.metrics, versions);
   renderPlayers(data.players);
   renderBackups(data.backups);
   renderAccessHint();
@@ -306,6 +307,14 @@ document.getElementById('refreshBtn').addEventListener('click', async () => {
   } catch (error) {
     setFeedback(error.message, 'error');
   }
+});
+
+document.getElementById('toggleBannerBtn')?.addEventListener('click', () => {
+  const topbar = document.querySelector('.topbar');
+  if (!topbar) return;
+  const hidden = topbar.classList.toggle('collapsed');
+  localStorage.setItem('topbarCollapsed', hidden ? '1' : '0');
+  document.getElementById('toggleBannerBtn').textContent = hidden ? 'Banner anzeigen' : 'Banner ausblenden';
 });
 
 document.getElementById('saveProfilesBtn').addEventListener('click', async () => {
@@ -502,6 +511,15 @@ for (const button of document.querySelectorAll('[data-main-tab]')) {
   button.addEventListener('click', () => setMainTab(button.dataset.mainTab));
 }
 setMainTab('overview');
+
+if (localStorage.getItem('topbarCollapsed') === '1') {
+  const topbar = document.querySelector('.topbar');
+  if (topbar) {
+    topbar.classList.add('collapsed');
+    const toggle = document.getElementById('toggleBannerBtn');
+    if (toggle) toggle.textContent = 'Banner anzeigen';
+  }
+}
 
 bootstrapAuth().catch((error) => {
   console.error(error);

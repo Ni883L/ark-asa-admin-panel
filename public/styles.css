@@ -16,6 +16,8 @@ body { margin: 0; font-family: Inter, Segoe UI, Arial, sans-serif; background: r
 .topbar { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(8px); display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: -24px -24px 12px; padding: 10px 18px; background: rgba(10, 15, 34, 0.75); border-bottom: 1px solid var(--border); }
 .topbar h1 { margin: 0; font-size: 1.2rem; }
 .topbar p { margin: 2px 0 0; font-size: .9rem; }
+.topbar.collapsed { padding: 4px 10px; margin-bottom: 6px; }
+.topbar.collapsed h1, .topbar.collapsed p { display: none; }
 .topbar-actions, .actions, .tabs { display: flex; flex-wrap: wrap; gap: 10px; }
 .main-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 16px; }
 .main-tab {
