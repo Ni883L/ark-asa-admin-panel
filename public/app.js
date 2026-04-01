@@ -530,7 +530,20 @@ function bindEvents() {
             const currentPassword = await requestSensitivePassword(action);
             if (!currentPassword) return;
             const payload = ['asa-update', 'panel-update'].includes(action) ? { confirm: true, currentPassword } : { currentPassword };
-            result = await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(payload) });
+            if (action === 'panel-update') {
+              try {
+                result = await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(payload) });
+              } catch (error) {
+                if (String(error.message || '').includes('Netzwerkfehler: API nicht erreichbar')) {
+                  setFeedback('Panel-Update läuft. Verbindung wird neu aufgebaut...', 'info');
+                  setTimeout(() => window.location.reload(), 5000);
+                  return;
+                }
+                throw error;
+              }
+            } else {
+              result = await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(payload) });
+            }
           } else {
             result = await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({}) });
           }
