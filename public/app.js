@@ -117,11 +117,13 @@ function renderStats(status = {}, metrics = {}, versions = {}) {
     Serverstatus: status.status || metrics.status || 'unknown',
     Profil: status.activeProfile?.name || '-',
     'Spiel-Version': versions?.server?.version || '-',
-    CPU: metrics.cpu || '-',
-    RAM: metrics.memory || '-',
+    'Version-Quelle': versions?.server?.source || '-',
+    'CPU (System)': metrics.cpu || '-',
+    'RAM (System)': metrics.memory || '-',
     Disk: metrics.disk || '-',
     Ports: metrics.ports || '-',
     'Letzter Start': metrics.lastStart || '-',
+    'Karte': metrics.loadedMap || metrics.mapName || '-',
     Crashs: metrics.crashDetected || 'unknown'
   };
   target.innerHTML = Object.entries(fields).map(([k, v]) => `<div class="stat"><strong>${k}</strong><div>${v}</div></div>`).join('');

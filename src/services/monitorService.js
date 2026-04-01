@@ -12,7 +12,9 @@ function deriveServerReadiness(metrics = {}, logText = '') {
   const status = String(metrics.status || '').toLowerCase();
   const crashDetected = String(metrics.crashDetected || '').toLowerCase() === 'true';
   const portsKnown = String(metrics.ports || '').toLowerCase() !== 'unknown';
+  const mapLoaded = String(metrics.mapLoaded || '').toLowerCase() === 'true';
   const lowerLog = String(logText || '').toLowerCase();
+  const mapName = metrics.loadedMap || metrics.mapName || '';
 
   if (crashDetected) {
     return { state: 'error', label: 'Fehler / Crash erkannt', detail: 'Logs deuten auf Crash oder fatalen Fehler hin.' };
@@ -24,11 +26,11 @@ function deriveServerReadiness(metrics = {}, logText = '') {
     return { state: 'starting', label: 'Startet', detail: 'Server wird gestartet.' };
   }
   if (status === 'running') {
-    if (lowerLog.includes('full startup') || lowerLog.includes('server startup complete') || lowerLog.includes('game server initialized')) {
-      return { state: 'ready', label: 'Läuft / bereit', detail: 'Server läuft und wirkt vollständig geladen.' };
+    if (mapLoaded) {
+      return { state: 'ready', label: 'Läuft / Karte geladen', detail: mapName ? `Server läuft, Karte ${mapName} ist geladen.` : 'Server läuft und die Karte ist geladen.' };
     }
     if (portsKnown || lowerLog.includes('listening') || lowerLog.includes('primal game data took')) {
-      return { state: 'loading', label: 'Läuft / lädt noch', detail: 'Serverprozess läuft, Welt oder Dienste laden noch.' };
+      return { state: 'loading', label: 'Läuft / lädt noch', detail: 'Serverprozess läuft, Karte oder Dienste laden noch.' };
     }
     return { state: 'running', label: 'Läuft', detail: 'Serverprozess läuft, Ladezustand noch unklar.' };
   }

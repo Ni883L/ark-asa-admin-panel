@@ -32,31 +32,47 @@ function getServerBuildInfo() {
       break;
     }
   }
-  if (!fs.existsSync(exe)) {
-    return { installed: false, version: installedBuild ? `Build ${installedBuild}` : null, file: exe };
-  }
-  const stat = fs.statSync(exe);
-  let version = null;
+
+  let logVersion = null;
   if (defaults.asa.logPath && fs.existsSync(defaults.asa.logPath)) {
-    const tail = fs.readFileSync(defaults.asa.logPath, 'utf8').split(/\r?\n/).slice(-400).join('\n');
+    const tail = fs.readFileSync(defaults.asa.logPath, 'utf8').split(/\r?\n/).slice(-600).join('\n');
     const match = tail.match(/ASA Version\s+([^\r\n]+)/i);
-    if (match && match[1]) version = match[1].trim();
+    if (match && match[1]) logVersion = match[1].trim();
   }
-  if (!version) {
-    const escapedExe = exe.replace(/'/g, "''");
-    const ps = spawnSync('powershell', [
-      '-NoProfile',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      `(Get-Item '${escapedExe}').VersionInfo.ProductVersion`
-    ], { encoding: 'utf8', timeout: 5000, windowsHide: true });
-    const fileVersion = String(ps.stdout || '').trim();
-    if (ps.status === 0 && fileVersion) version = fileVersion;
+
+  if (!fs.existsSync(exe)) {
+    return {
+      installed: false,
+      version: logVersion || (installedBuild ? `Build ${installedBuild}` : null),
+      buildId: installedBuild,
+      source: logVersion ? 'log' : 'manifest',
+      file: exe
+    };
   }
-  if (!version) version = stat.mtime.toISOString();
-  if (installedBuild) version = `${version} (Build ${installedBuild})`;
-  return { installed: true, version, file: exe };
+
+  let fileVersion = null;
+  const escapedExe = exe.replace(/'/g, "''");
+  const ps = spawnSync('powershell', [
+    '-NoProfile',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-Command',
+    `(Get-Item '${escapedExe}').VersionInfo.ProductVersion`
+  ], { encoding: 'utf8', timeout: 5000, windowsHide: true });
+  const stdout = String(ps.stdout || '').trim();
+  if (ps.status === 0 && stdout) fileVersion = stdout;
+
+  const versionLabel = logVersion || fileVersion || null;
+  const displayVersion = [versionLabel, installedBuild ? `Build ${installedBuild}` : null].filter(Boolean).join(' • ');
+
+  return {
+    installed: true,
+    version: displayVersion || null,
+    rawVersion: versionLabel,
+    buildId: installedBuild,
+    source: logVersion ? 'log' : (fileVersion ? 'file' : (installedBuild ? 'manifest' : 'unknown')),
+    file: exe
+  };
 }
 
 function getUpdateInfo() {

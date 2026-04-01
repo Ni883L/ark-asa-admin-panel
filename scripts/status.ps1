@@ -3,6 +3,8 @@ $ErrorActionPreference = 'Stop'
 $serviceName = $env:ASA_SERVER_SERVICE_NAME
 $exePath = $env:ASA_SERVER_EXE
 $logPath = $env:ASA_LOG_PATH
+$configDir = $env:ASA_CONFIG_DIR
+$asaRoot = $env:ASA_SERVER_ROOT
 
 $status = 'stopped'
 $lastStart = ''
@@ -12,57 +14,109 @@ $portsRaw = ''
 $cpu = 'unknown'
 $memory = 'unknown'
 $disk = 'unknown'
+$mapLoaded = 'false'
+$mapName = ''
+$loadedMap = ''
+$version = ''
+$buildId = ''
 
-$processName = [System.IO.Path]::GetFileNameWithoutExtension($exePath)
-$proc = $null
-
-if ($serviceName) {
-  $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-  if ($service) {
-    $status = $service.Status.ToString().ToLower()
-  }
+function Get-EnvOrDefault([string]$Value, [string]$Fallback) {
+  if ($Value) { return $Value }
+  return $Fallback
 }
 
-if (-not $status -or $status -eq 'stopped') {
-  if ($processName) {
-    $proc = Get-Process -Name $processName -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($proc) {
-      $status = 'running'
-      $lastStart = $proc.StartTime.ToString('s')
+function Get-ServerProcess {
+  param([string]$PathHint)
+
+  $candidates = @()
+  if ($PathHint) {
+    $name = [System.IO.Path]::GetFileNameWithoutExtension($PathHint)
+    if ($name) {
+      $candidates += Get-Process -Name $name -ErrorAction SilentlyContinue
     }
   }
-}
 
-if (-not $proc) {
+  $candidates += Get-Process -Name 'ArkAscendedServer' -ErrorAction SilentlyContinue
+
+  foreach ($proc in ($candidates | Sort-Object StartTime -Descending -ErrorAction SilentlyContinue)) {
+    if ($proc) { return $proc }
+  }
+
   $cimProc = Get-CimInstance Win32_Process -Filter "Name='ArkAscendedServer.exe'" -ErrorAction SilentlyContinue |
     Sort-Object CreationDate -Descending |
     Select-Object -First 1
   if ($cimProc) {
-    $proc = Get-Process -Id $cimProc.ProcessId -ErrorAction SilentlyContinue
+    return Get-Process -Id $cimProc.ProcessId -ErrorAction SilentlyContinue
+  }
+
+  return $null
+}
+
+function Get-InstalledBuildId {
+  param([string]$RootPath)
+
+  if (-not $RootPath) { return $null }
+  $manifestPath = Join-Path $RootPath 'steamapps\appmanifest_2430930.acf'
+  if (-not (Test-Path $manifestPath)) { return $null }
+  $content = Get-Content -Path $manifestPath -Raw -ErrorAction SilentlyContinue
+  $match = [regex]::Match($content, '"buildid"\s+"(?<build>\d+)"')
+  if ($match.Success) { return $match.Groups['build'].Value }
+  return $null
+}
+
+function Get-RecentLogTail {
+  param([string]$Path)
+  if (-not $Path -or -not (Test-Path $Path)) { return @() }
+  return Get-Content -Path $Path -Tail 400 -ErrorAction SilentlyContinue
+}
+
+$proc = Get-ServerProcess -PathHint $exePath
+if ($proc) {
+  $status = 'running'
+  $lastStart = $proc.StartTime.ToString('s')
+}
+
+if ($serviceName) {
+  $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+  if ($service) {
+    $serviceState = $service.Status.ToString().ToLower()
+    if ($serviceState -ne 'stopped' -or -not $proc) {
+      $status = $serviceState
+    }
   }
 }
 
-if (-not $proc) {
-  $proc = Get-Process -ErrorAction SilentlyContinue |
-    Where-Object {
-      $_.ProcessName -like '*ArkAscendedServer*' -or
-      $_.Path -like '*ArkAscendedServer.exe'
-    } |
-    Select-Object -First 1
-  if ($proc) {
-    $status = 'running'
-    $lastStart = $proc.StartTime.ToString('s')
-  }
+$logTail = Get-RecentLogTail -Path $logPath
+$lowerLog = ($logTail -join "`n").ToLowerInvariant()
+if ($lowerLog -match 'crash|fatal|access violation') {
+  $crashDetected = 'true'
+}
+if ($lowerLog -match 'the island|scorchedearth|aberration|extinction|forbiddenreach|thecenter|astraeos|bobsm') {
+  $mapLoaded = 'true'
+}
+if ($lowerLog -match 'server map.*?:\s*(?<map>[A-Za-z0-9_\-]+)') {
+  $mapName = $Matches['map']
+}
+if ($lowerLog -match 'loaded map\s*(?<map>[A-Za-z0-9_\-]+)') {
+  $loadedMap = $Matches['map']
+  $mapLoaded = 'true'
+}
+if ($lowerLog -match 'asa version\s+(?<ver>[^\r\n]+)') {
+  $version = $Matches['ver'].Trim()
+}
+if ($lowerLog -match 'buildid\D+(?<build>\d{5,})') {
+  $buildId = $Matches['build']
+}
+
+if (-not $buildId) {
+  $buildId = Get-InstalledBuildId -RootPath $asaRoot
 }
 
 if ($proc) {
-  $cpu = [Math]::Round($proc.CPU, 2).ToString() + ' CPU-s'
-  $memory = [Math]::Round($proc.WorkingSet64 / 1MB, 0).ToString() + ' MB'
-
   try {
     $connections = Get-NetTCPConnection -OwningProcess $proc.Id -State Listen -ErrorAction SilentlyContinue
     if ($connections) {
-      $entries = @($connections | ForEach-Object { "TCP:$($_.LocalPort)" })
+      $entries = @($connections | Sort-Object LocalPort | ForEach-Object { "TCP:$($_.LocalPort)" })
       $portsRaw = ($entries -join ',')
       $ports = $portsRaw
     }
@@ -71,18 +125,36 @@ if ($proc) {
   }
 }
 
-$diskInfo = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'" | Select-Object -First 1
-if ($diskInfo) {
-  $free = [Math]::Round($diskInfo.FreeSpace / 1GB, 1)
-  $size = [Math]::Round($diskInfo.Size / 1GB, 1)
-  $disk = "$free GB frei / $size GB"
+try {
+  $cpuCounter = Get-Counter '\Processor(_Total)\% Processor Time' -ErrorAction Stop
+  $cpuValue = [math]::Round($cpuCounter.CounterSamples[0].CookedValue, 1)
+  $cpu = "$cpuValue %"
+} catch {
+  $cpu = 'unknown'
 }
 
-if ($logPath -and (Test-Path $logPath)) {
-  $tail = Get-Content -Path $logPath -Tail 50 -ErrorAction SilentlyContinue
-  if ($tail -match 'crash|fatal|access violation') {
-    $crashDetected = 'true'
+try {
+  $osInfo = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+  $totalMemGb = [math]::Round($osInfo.TotalVisibleMemorySize / 1MB, 1)
+  $freeMemGb = [math]::Round($osInfo.FreePhysicalMemory / 1MB, 1)
+  $usedMemGb = [math]::Round(($osInfo.TotalVisibleMemorySize - $osInfo.FreePhysicalMemory) / 1MB, 1)
+  $memory = "$usedMemGb / $totalMemGb GB"
+} catch {
+  $memory = 'unknown'
+}
+
+try {
+  $drive = if ($asaRoot) { Split-Path -Qualifier $asaRoot } else { 'C:' }
+  if (-not $drive) { $drive = 'C:' }
+  $driveName = $drive.TrimEnd('\')
+  $diskInfo = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$driveName'" | Select-Object -First 1
+  if ($diskInfo) {
+    $free = [Math]::Round($diskInfo.FreeSpace / 1GB, 1)
+    $size = [Math]::Round($diskInfo.Size / 1GB, 1)
+    $disk = "$free GB frei / $size GB"
   }
+} catch {
+  $disk = 'unknown'
 }
 
 Write-Output "status=$status"
@@ -93,3 +165,8 @@ Write-Output "memory=$memory"
 Write-Output "disk=$disk"
 Write-Output "ports=$ports"
 Write-Output "portsRaw=$portsRaw"
+Write-Output "mapLoaded=$mapLoaded"
+Write-Output "mapName=$mapName"
+Write-Output "loadedMap=$loadedMap"
+Write-Output "version=$version"
+Write-Output "buildId=$buildId"
