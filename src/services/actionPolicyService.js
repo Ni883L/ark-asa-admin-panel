@@ -1,3 +1,6 @@
+const authService = require('./authService');
+const { ValidationError, PermissionError } = require('../util/errors');
+
 function requireConfirmation(action, payload = {}) {
   const critical = new Set(['reboot-host', 'asa-update', 'panel-update', 'restore-backup']);
   if (!critical.has(action)) {
@@ -5,10 +8,31 @@ function requireConfirmation(action, payload = {}) {
   }
 
   if (payload.confirm !== true) {
-    throw new Error(`Bestätigung für kritische Aktion fehlt: ${action}`);
+    throw new ValidationError(`Bestätigung für kritische Aktion fehlt: ${action}`, 'CONFIRMATION_REQUIRED');
   }
 
   return { ok: true, required: true };
 }
 
-module.exports = { requireConfirmation };
+function requireRecentAuth(req, payload = {}, options = {}) {
+  const maxAgeMs = Number(options.maxAgeMs || 5 * 60 * 1000);
+  const sessionUser = req.session?.user;
+  if (!sessionUser) {
+    throw new PermissionError('Nicht angemeldet.', 'AUTH_REQUIRED');
+  }
+
+  const currentPassword = String(payload.currentPassword || '');
+  if (!currentPassword.trim()) {
+    throw new ValidationError('Passwortbestätigung erforderlich.', 'PASSWORD_CONFIRMATION_REQUIRED');
+  }
+
+  const verified = authService.verifyCurrentUserPassword(req, currentPassword);
+  if (!verified) {
+    throw new PermissionError('Passwortbestätigung fehlgeschlagen.', 'PASSWORD_CONFIRMATION_FAILED');
+  }
+
+  req.session.lastSensitiveAuthAt = Date.now();
+  return { ok: true, required: true, maxAgeMs };
+}
+
+module.exports = { requireConfirmation, requireRecentAuth };

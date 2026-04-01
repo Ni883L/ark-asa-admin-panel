@@ -4,6 +4,15 @@ const defaults = require('../config/defaults');
 const powershell = require('./powershell');
 const logger = require('./logger');
 const backupRetentionService = require('./backupRetentionService');
+const { ValidationError } = require('../util/errors');
+
+function normalizeBackupName(name) {
+  const normalized = String(name || '').trim();
+  if (!normalized) throw new ValidationError('Backupname fehlt.', 'BACKUP_NAME_REQUIRED');
+  if (path.basename(normalized) !== normalized) throw new ValidationError('Ungültiger Backupname.', 'BACKUP_NAME_INVALID');
+  if (!normalized.toLowerCase().endsWith('.zip')) throw new ValidationError('Backup muss eine ZIP-Datei sein.', 'BACKUP_NAME_NOT_ZIP');
+  return normalized;
+}
 
 function parseValidationOutput(raw) {
   let parsed = {};
@@ -22,12 +31,9 @@ function parseValidationOutput(raw) {
 }
 
 function resolveBackupFile(name) {
-  const normalized = path.basename(String(name || ''));
-  if (!normalized || !normalized.toLowerCase().endsWith('.zip')) {
-    throw new Error('Ungültiger Backup-Name.');
-  }
+  const normalized = normalizeBackupName(name);
   const file = path.join(defaults.paths.backupDir, normalized);
-  if (!fs.existsSync(file)) throw new Error('Backup nicht gefunden.');
+  if (!fs.existsSync(file)) throw new ValidationError('Backup nicht gefunden.', 'BACKUP_NOT_FOUND');
   return { name: normalized, file };
 }
 
@@ -44,41 +50,58 @@ function listBackups() {
 }
 
 async function createBackup(type = 'manual') {
-  const result = await powershell.run('backup-create.ps1', [type]);
-  backupRetentionService.applyRetention();
-  logger.audit('system', 'backup-create', { type });
+  const normalizedType = String(type || 'manual');
+  const result = await powershell.run('backup-create.ps1', [normalizedType]);
+  logger.audit('system', 'backup-create', { type: normalizedType });
+  if (backupRetentionService?.applyRetention) {
+    backupRetentionService.applyRetention();
+  }
+  if (backupRetentionService?.enforceRetention) {
+    backupRetentionService.enforceRetention();
+  }
   return result;
 }
 
 async function validateBackup(name) {
   const resolved = resolveBackupFile(name);
-  const { file } = resolved;
-  const result = await powershell.run('backup-validate.ps1', [file]);
+  const result = await powershell.run('backup-validate.ps1', [resolved.file]);
   const validation = parseValidationOutput(result.stdout);
-  if (!validation.valid) throw new Error('Backup ist ungültig oder enthält keine unterstützten Daten.');
-  return { name: resolved.name, file, validation };
+  if (!validation.valid) throw new ValidationError('Backup ist ungültig oder enthält keine unterstützten Daten.', 'BACKUP_INVALID');
+  return { name: resolved.name, file: resolved.file, validation };
 }
 
 async function restoreBackup(name, mode = 'full') {
   const resolved = resolveBackupFile(name);
-  const { file } = resolved;
   if (!['full', 'save', 'config', 'cluster'].includes(mode)) {
-    throw new Error('Ungültiger Restore-Modus.');
+    throw new ValidationError('Ungültiger Restore-Modus.', 'BACKUP_MODE_INVALID');
   }
   await validateBackup(resolved.name);
   const preRestore = await createBackup('pre-restore');
-  const result = await powershell.run('backup-restore.ps1', [file, mode]);
+  const result = await powershell.run('backup-restore.ps1', [resolved.file, mode]);
   logger.audit('system', 'backup-restore', { name: resolved.name, mode, preRestore: preRestore.stdout || null });
   return { ...result, preRestore: preRestore.stdout || null };
 }
 
 function importBackup(tempFilePath, originalName) {
   fs.mkdirSync(defaults.paths.backupDir, { recursive: true });
-  const safeName = `${Date.now()}-${path.basename(originalName || 'import.zip')}`;
+  const baseName = path.basename(String(originalName || 'import.zip'));
+  if (!baseName.toLowerCase().endsWith('.zip')) {
+    throw new ValidationError('Nur ZIP-Backups können importiert werden.', 'BACKUP_IMPORT_NOT_ZIP');
+  }
+  const safeName = `${Date.now()}-${baseName}`;
   const destination = path.join(defaults.paths.backupDir, safeName);
   fs.copyFileSync(tempFilePath, destination);
   logger.audit('system', 'backup-import', { safeName });
   return { name: safeName, file: destination };
 }
 
-module.exports = { listBackups, createBackup, restoreBackup, importBackup, validateBackup, parseValidationOutput, resolveBackupFile };
+module.exports = {
+  listBackups,
+  createBackup,
+  restoreBackup,
+  importBackup,
+  validateBackup,
+  parseValidationOutput,
+  resolveBackupFile,
+  normalizeBackupName
+};

@@ -1,6 +1,7 @@
 const net = require('net');
 const defaults = require('../config/defaults');
 const monitorService = require('./monitorService');
+const { getRuntimeWarnings } = require('../util/runtimeWarnings');
 
 function checkPort(host, port, timeoutMs = 1500) {
   return new Promise((resolve) => {
@@ -22,18 +23,26 @@ function checkPort(host, port, timeoutMs = 1500) {
 
 async function getHealth() {
   const metrics = await monitorService.getMetrics();
+  const warnings = getRuntimeWarnings();
   const portsToCheck = [];
   const portsField = String(metrics.portsRaw || '').split(',').filter(Boolean);
   for (const item of portsField) {
     const [name, port] = item.split(':');
-    portsToCheck.push({ name, port: Number(port) });
+    const portNumber = Number(port);
+    if (!Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) continue;
+    portsToCheck.push({ name, port: portNumber });
   }
   const checks = await Promise.all(portsToCheck.map(async ({ name, port }) => ({
     name,
     port,
     open: await checkPort('127.0.0.1', port)
   })));
-  return { metrics, ports: checks, overall: checks.every(item => item.open) ? 'ok' : 'degraded' };
+  return {
+    metrics,
+    ports: checks,
+    warnings,
+    overall: checks.every(item => item.open) && warnings.length === 0 ? 'ok' : 'degraded'
+  };
 }
 
 module.exports = { getHealth };

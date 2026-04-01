@@ -1,5 +1,6 @@
 const express = require('express');
 const authService = require('../services/authService');
+const { sendError } = require('../util/http');
 
 const router = express.Router();
 
@@ -8,7 +9,7 @@ router.post('/login', (req, res) => {
     const result = authService.login(req, req.body.username, req.body.password);
     res.json({ ok: true, user: result });
   } catch (error) {
-    res.status(401).json({ error: error.message });
+    sendError(res, error, 401);
   }
 });
 
@@ -33,7 +34,7 @@ router.post('/change-password', (req, res) => {
     authService.changePassword(req, req.body.currentPassword, req.body.newPassword);
     res.json({ ok: true });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    sendError(res, error, 400);
   }
 });
 

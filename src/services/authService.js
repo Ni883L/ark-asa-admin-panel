@@ -4,6 +4,7 @@ const store = require('./store');
 const logger = require('./logger');
 const { verifyPassword, hashPassword } = require('../util/passwords');
 const { requireString } = require('../util/validators');
+const { AuthError, PermissionError } = require('../util/errors');
 
 function nowMs() { return Date.now(); }
 
@@ -57,7 +58,7 @@ function ensureNotBlocked(ip) {
   const data = store.getUsers();
   const blockUntil = data.blockedIps[ip];
   if (blockUntil && blockUntil > nowMs()) {
-    throw new Error('IP temporär gesperrt. Bitte später erneut versuchen.');
+    throw new AuthError('IP temporär gesperrt. Bitte später erneut versuchen.', 'IP_TEMP_BLOCKED');
   }
   if (blockUntil && blockUntil <= nowMs()) {
     delete data.blockedIps[ip];
@@ -94,7 +95,7 @@ function login(req, username, password) {
   if (!user || !verifyPassword(normalizedPass, user.passwordHash)) {
     recordFailedAttempt(ip);
     logger.warn('Failed login', { username: normalizedUser, ip });
-    throw new Error('Ungültige Zugangsdaten.');
+    throw new AuthError('Ungültige Zugangsdaten.', 'INVALID_CREDENTIALS');
   }
   clearFailedAttempts(ip);
   req.session.user = { username: user.username, role: user.role };
@@ -110,13 +111,13 @@ function logout(req) {
 }
 
 function requireAuth(req) {
-  if (!req.session?.user) throw new Error('Nicht angemeldet.');
+  if (!req.session?.user) throw new AuthError('Nicht angemeldet.', 'AUTH_REQUIRED');
   return req.session.user;
 }
 
 function requireRole(req, allowedRoles = ['admin']) {
   const user = requireAuth(req);
-  if (!allowedRoles.includes(user.role)) throw new Error('Keine Berechtigung.');
+  if (!allowedRoles.includes(user.role)) throw new PermissionError('Keine Berechtigung.', 'ROLE_NOT_ALLOWED');
   return user;
 }
 
@@ -125,7 +126,7 @@ function changePassword(req, currentPassword, newPassword) {
   const data = store.getUsers();
   const user = data.users.find(item => item.username === sessionUser.username);
   if (!user || !verifyPassword(currentPassword, user.passwordHash)) {
-    throw new Error('Aktuelles Passwort ist falsch.');
+    throw new AuthError('Aktuelles Passwort ist falsch.', 'CURRENT_PASSWORD_INVALID');
   }
   user.passwordHash = hashPassword(requireString(newPassword, 'Neues Passwort'));
   user.mustChangePassword = false;
@@ -133,4 +134,23 @@ function changePassword(req, currentPassword, newPassword) {
   logger.audit(sessionUser.username, 'change-password');
 }
 
-module.exports = { login, logout, requireAuth, requireRole, changePassword, getClientIp, isWhitelistedIp, isLocalIp, normalizeIp };
+function verifyCurrentUserPassword(req, password) {
+  const sessionUser = requireAuth(req);
+  const normalizedPass = requireString(password, 'Passwort');
+  const data = store.getUsers();
+  const user = data.users.find(item => item.username === sessionUser.username);
+  return !!(user && verifyPassword(normalizedPass, user.passwordHash));
+}
+
+module.exports = {
+  login,
+  logout,
+  requireAuth,
+  requireRole,
+  changePassword,
+  getClientIp,
+  isWhitelistedIp,
+  isLocalIp,
+  normalizeIp,
+  verifyCurrentUserPassword
+};

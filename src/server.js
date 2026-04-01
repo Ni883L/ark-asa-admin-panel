@@ -14,6 +14,7 @@ const { attachSessionUser } = require('./middleware/sessionUser');
 const authRoutes = require('./routes/authRoutes');
 const apiRoutes = require('./routes/apiRoutes');
 const schedulerRunnerService = require('./services/schedulerRunnerService');
+const { getRuntimeWarnings } = require('./util/runtimeWarnings');
 
 store.bootstrap();
 
@@ -50,6 +51,9 @@ const server = defaults.app.httpsEnabled
 server.listen(defaults.app.port, defaults.app.host, () => {
   logger.info('Server started', { host: defaults.app.host, port: defaults.app.port });
   schedulerRunnerService.start();
+  for (const warning of getRuntimeWarnings()) {
+    logger.warn('Runtime warning', warning);
+  }
   console.log(`${defaults.app.name} läuft auf ${defaults.app.httpsEnabled ? 'https' : 'http'}://${defaults.app.host}:${defaults.app.port}`);
 });
 

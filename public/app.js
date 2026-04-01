@@ -191,6 +191,16 @@ async function api(url, options = {}) {
   }
 
   if (!response.ok) throw new Error(data.error || `Fehler ${response.status}`);
+
+  const response = await fetch(url, { ...options, headers });
+  const text = await response.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { error: text || 'Unbekannter Fehler' };
+  }
+  if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
   return data;
 }
 
@@ -262,6 +272,13 @@ function switchConfigMode(mode) {
 }
 
 function renderStats(status, metrics, versions) {
+
+function showMessage(message) {
+  if (!message) return;
+  alert(message);
+}
+
+function renderStats(status, metrics) {
   const target = document.getElementById('statusGrid');
   const fields = {
     Serverstatus: status.status || metrics.status || 'unknown',
@@ -291,6 +308,10 @@ function renderBackups(backups) {
   target.innerHTML = `<div class="item-list">${backups.map(backup => `<div class="item"><strong>${backup.name}</strong><div>${backup.modifiedAt}</div><div>${backup.size} Bytes</div><button onclick="restoreBackup('${backup.name}')">Restore</button></div>`).join('')}</div>`;
 }
 
+async function requestSensitivePassword(label) {
+  return prompt(`Passwortbestätigung für ${label}:`);
+}
+
 async function restoreBackup(name) {
   if (!confirm(`Backup ${name} wirklich wiederherstellen?`)) return;
   try {
@@ -300,6 +321,11 @@ async function restoreBackup(name) {
   } catch (error) {
     setFeedback(error.message, 'error');
   }
+
+  const currentPassword = await requestSensitivePassword(`Restore ${name}`);
+  if (!currentPassword) return;
+  await api('/api/backups/restore', { method: 'POST', body: JSON.stringify({ name, mode: 'full', confirm: true, currentPassword }) });
+  await refreshDashboard();
 }
 window.restoreBackup = restoreBackup;
 
@@ -311,6 +337,8 @@ async function loadConfig(name = currentConfig) {
 
 async function refreshDashboard() {
   const [data, profiles, health, versions, tasks, users, audit, panelEnv, autostart, asaAutostart] = await Promise.all([
+
+  const results = await Promise.allSettled([
     api('/api/dashboard'),
     api('/api/profiles'),
     api('/api/health'),
@@ -342,6 +370,49 @@ async function refreshDashboard() {
   document.getElementById('usersInfo').textContent = JSON.stringify(users.users || [], null, 2);
   document.getElementById('auditInfo').textContent = (audit.entries || []).join('\n');
   await loadConfig(currentConfig);
+
+  const [dashboardResult, profilesResult, healthResult, versionsResult, tasksResult, usersResult, auditResult] = results;
+
+  if (dashboardResult.status === 'fulfilled') {
+    const data = dashboardResult.value;
+    renderStats(data.status, data.metrics);
+    renderPlayers(data.players || []);
+    renderBackups(data.backups || []);
+    document.getElementById('logs').textContent = data.logs || '(leer)';
+    document.getElementById('settingsEditor').value = JSON.stringify(data.settings, null, 2);
+  } else {
+    showMessage(`Dashboard konnte nicht vollständig geladen werden: ${dashboardResult.reason.message}`);
+  }
+
+  if (profilesResult.status === 'fulfilled') {
+    document.getElementById('profilesEditor').value = JSON.stringify(profilesResult.value, null, 2);
+  }
+
+  if (healthResult.status === 'fulfilled') {
+    document.getElementById('healthInfo').textContent = JSON.stringify(healthResult.value, null, 2);
+  }
+
+  if (versionsResult.status === 'fulfilled') {
+    document.getElementById('versionInfo').textContent = JSON.stringify(versionsResult.value, null, 2);
+  }
+
+  if (tasksResult.status === 'fulfilled') {
+    document.getElementById('tasksEditor').value = JSON.stringify(tasksResult.value.tasks || [], null, 2);
+  }
+
+  if (usersResult.status === 'fulfilled') {
+    document.getElementById('usersInfo').textContent = JSON.stringify(usersResult.value.users || [], null, 2);
+  }
+
+  if (auditResult.status === 'fulfilled') {
+    document.getElementById('auditInfo').textContent = (auditResult.value.entries || []).join('\n');
+  }
+
+  try {
+    await loadConfig(currentConfig);
+  } catch (error) {
+    document.getElementById('configEditor').value = `Fehler beim Laden: ${error.message}`;
+  }
 }
 
 async function bootstrapAuth() {
@@ -379,6 +450,9 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
     setFeedback('', 'info');
   } catch (error) {
     setFeedback(error.message, 'error');
+
+  } catch (error) {
+    showMessage(error.message);
   }
 });
 
@@ -404,12 +478,18 @@ document.getElementById('detectServerBtn').addEventListener('click', async () =>
   } catch (error) {
     document.getElementById('wizardResult').textContent = `Servererkennung fehlgeschlagen: ${error.message}`;
     setFeedback(error.message, 'error');
+
+    document.getElementById('wizardResult').textContent = JSON.stringify(result, null, 2);
+  } catch (error) {
+    showMessage(error.message);
   }
 });
 
 document.getElementById('completeWizardBtn').addEventListener('click', async () => {
   try {
     const result = await api('/api/bootstrap', {
+
+    await api('/api/bootstrap', {
       method: 'POST',
       body: JSON.stringify({
         asaRoot: document.getElementById('wizardAsaPath').value,
@@ -458,12 +538,24 @@ document.getElementById('toggleBannerBtn')?.addEventListener('click', () => {
   document.getElementById('toggleBannerBtn').textContent = hidden ? 'Banner anzeigen' : 'Banner ausblenden';
 });
 
+    await bootstrapAuth();
+  } catch (error) {
+    showMessage(error.message);
+  }
+});
+
+document.getElementById('refreshBtn').addEventListener('click', () => refreshDashboard().catch((error) => showMessage(error.message)));
+
 document.getElementById('saveProfilesBtn').addEventListener('click', async () => {
   try {
     await api('/api/profiles', { method: 'POST', body: document.getElementById('profilesEditor').value });
     setFeedback('Profile gespeichert.', 'success');
   } catch (error) {
     setFeedback(error.message, 'error');
+
+    showMessage('Profile gespeichert.');
+  } catch (error) {
+    showMessage(error.message);
   }
 });
 
@@ -572,6 +664,10 @@ document.getElementById('repairPanelServiceBtn')?.addEventListener('click', asyn
     await refreshDashboard();
   } catch (error) {
     setFeedback(`Panel-Dienst Registrierung fehlgeschlagen: ${error.message}`, 'error');
+
+    showMessage('Einstellungen gespeichert.');
+  } catch (error) {
+    showMessage(error.message);
   }
 });
 
@@ -584,6 +680,10 @@ document.getElementById('saveTasksBtn').addEventListener('click', async () => {
     setFeedback('Tasks gespeichert.', 'success');
   } catch (error) {
     setFeedback(error.message, 'error');
+
+    showMessage('Tasks gespeichert.');
+  } catch (error) {
+    showMessage(error.message);
   }
 });
 
@@ -596,6 +696,10 @@ document.getElementById('saveConfigBtn').addEventListener('click', async () => {
     setFeedback(`${currentConfig} gespeichert.`, 'success');
   } catch (error) {
     setFeedback(error.message, 'error');
+
+    showMessage('Config gespeichert.');
+  } catch (error) {
+    showMessage(error.message);
   }
 });
 
@@ -620,13 +724,16 @@ for (const button of document.querySelectorAll('[data-config]')) {
       setFeedback(error.message, 'error');
     }
   });
+
+  button.addEventListener('click', () => loadConfig(button.dataset.config).catch((error) => showMessage(error.message)));
 }
 
 for (const button of document.querySelectorAll('[data-action]')) {
   button.addEventListener('click', async () => {
-    const action = button.dataset.action;
-    const dangerous = ['stop', 'restart', 'asa-update', 'panel-update', 'reboot-host'];
-    if (dangerous.includes(action) && !confirm(`Aktion ${action} wirklich ausführen?`)) return;
+    try {
+      const action = button.dataset.action;
+      const dangerous = ['stop', 'restart', 'asa-update', 'panel-update', 'reboot-host'];
+      if (dangerous.includes(action) && !confirm(`Aktion ${action} wirklich ausführen?`)) return;
 
     try {
       await withBusy(button, async () => {
@@ -672,6 +779,28 @@ for (const button of document.querySelectorAll('[data-action]')) {
     } catch (error) {
       setActionLog(`Aktion ${action} (Fehler)`, { stderr: error.message });
       setFeedback(`Aktion '${action}' fehlgeschlagen: ${error.message}`, 'error');
+
+      if (action === 'backup') {
+        await api('/api/backups/create', { method: 'POST', body: JSON.stringify({ type: 'manual' }) });
+      } else if (action === 'reboot-host') {
+        const delaySeconds = Number(document.getElementById('rebootDelay').value || 0);
+        const currentPassword = await requestSensitivePassword('Windows-Neustart');
+        if (!currentPassword) return;
+        await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({ confirm: true, delaySeconds, currentPassword }) });
+      } else if (['stop', 'restart', 'asa-update', 'panel-update'].includes(action)) {
+        const currentPassword = await requestSensitivePassword(action);
+        if (!currentPassword) return;
+        const confirmPayload = ['asa-update', 'panel-update'].includes(action)
+          ? { confirm: true, currentPassword }
+          : { currentPassword };
+        await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(confirmPayload) });
+      } else {
+        await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify({}) });
+      }
+
+      await refreshDashboard();
+    } catch (error) {
+      showMessage(error.message);
     }
   });
 }
