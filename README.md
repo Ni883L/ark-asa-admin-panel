@@ -155,6 +155,11 @@ Hinweis: Wenn `git` oder der `.git`-Ordner fehlt, faellt `update.ps1` automatisc
 
 Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner aufgerufen werden, wird dieser Pfad standardmaessig automatisch verwendet (kein fester Hardcode auf `C:\...`).
 
+Falls `panel-autostart.ps1 -Mode Enable` mit `Zugriff verweigert` scheitert, starte stattdessen eine Admin-PowerShell über:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\panel-autostart.ps1 -Mode ElevateEnable -InstallPath 'C:\ark-asa-admin'
+```
+
 ## Update-Strategie
 
 ### Adminpanel

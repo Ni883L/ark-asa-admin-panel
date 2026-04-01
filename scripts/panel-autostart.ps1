@@ -1,10 +1,16 @@
 param(
-  [ValidateSet('Status', 'Enable', 'Disable')]
+  [ValidateSet('Status', 'Enable', 'Disable', 'ElevateEnable')]
   [string]$Mode = 'Status',
   [string]$TaskName = 'ArkAsaAdminPanel',
   [string]$InstallPath = (Split-Path -Parent $PSScriptRoot)
 )
 $ErrorActionPreference = 'Stop'
+
+function Test-IsAdmin {
+  $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+  $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
+  return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
 
 function Resolve-NodePath {
   $node = Get-Command node -ErrorAction SilentlyContinue
@@ -24,6 +30,28 @@ function Get-Task([string]$Name) {
   return Get-ScheduledTask -TaskName $Name -ErrorAction SilentlyContinue
 }
 
+if ($Mode -eq 'ElevateEnable') {
+  $scriptPath = $MyInvocation.MyCommand.Path
+  $arguments = @(
+    '-NoProfile',
+    '-ExecutionPolicy', 'Bypass',
+    '-File', ('"' + $scriptPath + '"'),
+    '-Mode', 'Enable',
+    '-TaskName', ('"' + $TaskName + '"'),
+    '-InstallPath', ('"' + $InstallPath + '"')
+  ) -join ' '
+  Start-Process -Verb RunAs -FilePath 'powershell.exe' -ArgumentList $arguments | Out-Null
+  Write-Output (@{
+      ok = $true
+      elevated = $true
+      launched = $true
+      taskName = $TaskName
+      installPath = $InstallPath
+      message = 'Admin-PowerShell wurde zum Registrieren des Panel-Tasks gestartet.'
+    } | ConvertTo-Json -Compress)
+  exit 0
+}
+
 $task = Get-Task -Name $TaskName
 
 if ($Mode -eq 'Status') {
@@ -34,11 +62,16 @@ if ($Mode -eq 'Status') {
       state = $state
       taskName = $TaskName
       installPath = $InstallPath
+      isAdmin = (Test-IsAdmin)
     } | ConvertTo-Json -Compress)
   exit 0
 }
 
 if ($Mode -eq 'Enable') {
+  if (-not (Test-IsAdmin)) {
+    throw 'Administratorrechte erforderlich. Starte stattdessen: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\panel-autostart.ps1 -Mode ElevateEnable -InstallPath "C:\ark-asa-admin"'
+  }
+
   $nodePath = Resolve-NodePath
   $action = New-ScheduledTaskAction -Execute $nodePath -Argument 'src/server.js' -WorkingDirectory $InstallPath
   $trigger = New-ScheduledTaskTrigger -AtStartup
@@ -53,6 +86,10 @@ if ($Mode -eq 'Enable') {
       nodePath = $nodePath
     } | ConvertTo-Json -Compress)
   exit 0
+}
+
+if (-not (Test-IsAdmin)) {
+  throw 'Administratorrechte erforderlich, um den Panel-Task zu entfernen.'
 }
 
 if ($task) {
