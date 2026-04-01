@@ -186,6 +186,19 @@ function shouldRequirePasswordForDangerousActions() {
   return !!document.getElementById('requirePasswordForDangerousActions')?.checked;
 }
 
+function loadDangerousActionPasswordPreference() {
+  const value = localStorage.getItem('requirePasswordForDangerousActions');
+  const checkbox = document.getElementById('requirePasswordForDangerousActions');
+  if (!checkbox) return;
+  checkbox.checked = value === '1';
+}
+
+function saveDangerousActionPasswordPreference() {
+  const checkbox = document.getElementById('requirePasswordForDangerousActions');
+  if (!checkbox) return;
+  localStorage.setItem('requirePasswordForDangerousActions', checkbox.checked ? '1' : '0');
+}
+
 async function requestSensitivePassword(label) {
   if (!shouldRequirePasswordForDangerousActions()) return '';
   return prompt(`Passwortbestätigung für ${label}:`);
@@ -497,6 +510,7 @@ function bindEvents() {
   });
 
   document.getElementById('gameSettingsFilter')?.addEventListener('input', renderGameSettingsHelp);
+  document.getElementById('requirePasswordForDangerousActions')?.addEventListener('change', saveDangerousActionPasswordPreference);
 
   for (const button of document.querySelectorAll('[data-config-mode]')) {
     button.addEventListener('click', () => switchConfigMode(button.dataset.configMode));
@@ -566,7 +580,11 @@ function bindEvents() {
         });
       } catch (error) {
         setActionLog(`Aktion ${action} (Fehler)`, { stderr: error.message });
-        setFeedback(`Aktion '${action}' fehlgeschlagen: ${error.message}`, 'error');
+        if (action === 'asa-update' && String(error.message || '').includes('Stop-Zustand erlaubt')) {
+          setFeedback('ASA-Update nur möglich, wenn der Server gestoppt ist. Bitte erst Stop ausführen.', 'error');
+        } else {
+          setFeedback(`Aktion '${action}' fehlgeschlagen: ${error.message}`, 'error');
+        }
       }
     });
   }
@@ -579,6 +597,7 @@ function bindEvents() {
 }
 
 bindEvents();
+loadDangerousActionPasswordPreference();
 renderGameSettingsHelp();
 switchConfigMode('editor');
 if (localStorage.getItem('topbarCollapsed') === '1') {
