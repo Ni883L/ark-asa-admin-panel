@@ -75,7 +75,6 @@
               <button data-action="reboot-host" class="danger">Windows neu starten</button>
             </div>
             <label>Neustart-Verzögerung (Sekunden)<input id="rebootDelay" type="number" min="0" step="1" value="60" /></label>
-            <label class="checkbox-row"><input id="requirePasswordForDangerousActions" type="checkbox" /> Passwort für kritische Aktionen zusätzlich abfragen</label>
             <div id="actionFeedback" class="feedback hidden"><span id="actionFeedbackText"></span><button id="feedbackCloseBtn" class="ghost" type="button">✕</button></div>
             <div id="actionProgress" class="progress hidden"><div class="bar"></div></div>
             <pre id="actionLog">Noch keine Aktionen ausgeführt.</pre>
@@ -124,6 +123,7 @@
                 <div id="gameSettingsHelp" class="item-list"></div>
               </div>
             </div>
+            <label class="checkbox-row"><input id="requirePasswordForDangerousActions" type="checkbox" /> Passwort für kritische Aktionen zusätzlich abfragen</label>
             <div class="actions">
               <button id="saveConfigBtn">Config speichern</button>
             </div>
