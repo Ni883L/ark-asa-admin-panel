@@ -172,7 +172,7 @@ router.post('/actions/reboot-host', handleRoute(async (req, res) => {
 router.post('/actions/panel-update', handleRoute(async (req, res) => {
   authService.requireRole(req, ['admin']);
   requireSensitiveActionAuth(req);
-  const result = await asaService.selfUpdate();
+  const result = await asaService.updateAndRestartPanel();
   res.json({ ok: true, ...result });
 }));
 

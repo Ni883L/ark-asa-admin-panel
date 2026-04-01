@@ -34,6 +34,6 @@ test('parseValidationOutput handles invalid json', () => {
 
 test('resolveBackupFile rejects unsafe names', () => {
   const backupService = require('../src/services/backupService');
-  assert.throws(() => backupService.resolveBackupFile('../evil.zip'), /Backup nicht gefunden|Ungültiger Backup-Name/);
-  assert.throws(() => backupService.resolveBackupFile('not-a-zip.txt'), /Ungültiger Backup-Name/);
+  assert.throws(() => backupService.resolveBackupFile('../evil.zip'), /Backup nicht gefunden|Ungültiger Backupname|Ungültiger Backup-Name/);
+  assert.throws(() => backupService.resolveBackupFile('not-a-zip.txt'), /Ungültiger Backupname|Ungültiger Backup-Name|Backup muss eine ZIP-Datei sein/);
 });

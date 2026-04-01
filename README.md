@@ -160,6 +160,7 @@ Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner a
 - Vor Update wird ein minimales Panel-Backup erstellt
 - `git fetch` + `git pull` (oder ZIP-Fallback, falls Git fehlt)
 - `npm install --omit=dev --no-audit --no-fund`
+- nach Panel-Update wird der Webdienst/Task kontrolliert neu gestartet und der Port auf Erreichbarkeit geprüft
 - bei Fehlern kann auf das letzte Backup zurückgerollt werden
 
 ### ASA-Server

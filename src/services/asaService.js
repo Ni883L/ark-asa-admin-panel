@@ -197,27 +197,16 @@ async function selfUpdate() {
   return result;
 }
 
-async function restartPanelService() {
-  const envOverrides = {};
-  const envFile = path.resolve(process.cwd(), '.env');
-  if (fs.existsSync(envFile)) {
-    for (const line of fs.readFileSync(envFile, 'utf8').split(/\r?\n/)) {
-      if (!line || line.trim().startsWith('#') || !line.includes('=')) continue;
-      const [key, ...rest] = line.split('=');
-      envOverrides[key.trim()] = rest.join('=').trim();
-    }
-  }
+async function updateAndRestartPanel() {
+  const updateResult = await selfUpdate();
+  const restartResult = await powershell.run('panel-restart.ps1', ['-Port', String(defaults.app.port)]);
+  logger.audit('system', 'panel-update-restart', { port: defaults.app.port });
+  return { updateResult, restartResult, stdout: [updateResult.stdout, restartResult.stdout].filter(Boolean).join('\n'), stderr: [updateResult.stderr, restartResult.stderr].filter(Boolean).join('\n') };
+}
 
-  const child = spawn(process.execPath, process.argv.slice(1), {
-    cwd: process.cwd(),
-    env: { ...process.env, ...envOverrides },
-    detached: true,
-    stdio: 'ignore'
-  });
-  child.unref();
-  setTimeout(() => process.exit(0), 800);
-  const result = { stdout: 'panel process restart triggered', stderr: '' };
-  logger.audit('system', 'panel-restart-service');
+async function restartPanelService() {
+  const result = await powershell.run('panel-restart.ps1', ['-Port', String(defaults.app.port)]);
+  logger.audit('system', 'panel-restart-service', { port: defaults.app.port });
   return result;
 }
 
@@ -268,6 +257,7 @@ module.exports = {
   installOrUpdateServer,
   checkForServerUpdate,
   selfUpdate,
+  updateAndRestartPanel,
   restartPanelService,
   checkPanelFirewall,
   openPanelFirewall,
