@@ -157,9 +157,9 @@ Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner a
 ## Update-Strategie
 
 ### Adminpanel
-- Vor Update wird ein Panel-Backup erstellt
-- `git fetch` + `git pull`
-- `npm install`
+- Vor Update wird ein minimales Panel-Backup erstellt
+- `git fetch` + `git pull` (oder ZIP-Fallback, falls Git fehlt)
+- `npm install --omit=dev --no-audit --no-fund`
 - bei Fehlern kann auf das letzte Backup zurückgerollt werden
 
 ### ASA-Server
@@ -184,6 +184,8 @@ Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner a
 - Restore des kompletten Backups oder einzelner Bereiche
 - Import externer ZIP-Backups
 - Backup-Validierung vor Restore
+- Restore akzeptiert nur valide ZIP-Dateinamen aus dem Backup-Ordner
+- Restore und andere kritische Aktionen verlangen zusätzlich eine Passwortbestätigung im Webpanel
 
 ## Sicherheit
 - Login mit Passwort-Hashing
@@ -191,7 +193,9 @@ Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner a
 - Session-Timeout
 - CSRF-Token für Schreibzugriffe
 - Rate-Limit / Sperrlogik für fehlgeschlagene Logins
+- Passwort-Re-Bestätigung für kritische Aktionen (z. B. Stop/Restart/Update/Restore/Reboot)
 - optionale Whitelist für lokale/vertrauenswürdige IPs (`LOGIN_WHITELIST_LOCAL`, `LOGIN_WHITELIST_IPS`)
+- Runtime-Warnungen bei unsicheren Betriebsmodi (z. B. Default-Secret, Remote-Zugriff ohne HTTPS)
 - Audit-Log für sensible Aktionen
 - restriktive Default-Header (CSP, X-Frame-Options, etc.)
 - keine Klartextpasswörter in Logs
