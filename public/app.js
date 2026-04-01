@@ -182,7 +182,12 @@ async function withBusy(button, fn) {
   }
 }
 
+function shouldRequirePasswordForDangerousActions() {
+  return !!document.getElementById('requirePasswordForDangerousActions')?.checked;
+}
+
 async function requestSensitivePassword(label) {
+  if (!shouldRequirePasswordForDangerousActions()) return '';
   return prompt(`Passwortbestätigung für ${label}:`);
 }
 
@@ -406,9 +411,9 @@ function bindEvents() {
   document.getElementById('restartPanelServiceBtn')?.addEventListener('click', async () => {
     if (!confirm('Panel-Webdienst wirklich neu starten?')) return;
     const currentPassword = await requestSensitivePassword('Panel-Webdienst-Neustart');
-    if (!currentPassword) return;
+    if (shouldRequirePasswordForDangerousActions() && !currentPassword) return;
     try {
-      await api('/api/actions/panel-restart', { method: 'POST', body: JSON.stringify({ currentPassword }) });
+      await api('/api/actions/panel-restart', { method: 'POST', body: JSON.stringify({ currentPassword, requirePassword: shouldRequirePasswordForDangerousActions() }) });
       setFeedback('Webdienst-Neustart ausgelöst. Seite wird neu geladen.', 'info');
       setTimeout(() => window.location.reload(), 4000);
     } catch (error) {
@@ -429,10 +434,10 @@ function bindEvents() {
   document.getElementById('openFirewallBtn')?.addEventListener('click', async () => {
     if (!confirm('Firewall-Port jetzt freigeben?')) return;
     const currentPassword = await requestSensitivePassword('Firewall-Port freigeben');
-    if (!currentPassword) return;
+    if (shouldRequirePasswordForDangerousActions() && !currentPassword) return;
     try {
       const port = Number(document.getElementById('panelPortInput').value || 3000);
-      await api('/api/actions/panel-firewall-open', { method: 'POST', body: JSON.stringify({ port, currentPassword }) });
+      await api('/api/actions/panel-firewall-open', { method: 'POST', body: JSON.stringify({ port, currentPassword, requirePassword: shouldRequirePasswordForDangerousActions() }) });
       setFeedback(`Firewall-Port ${port} freigegeben.`, 'success');
     } catch (error) {
       setFeedback(error.message, 'error');
@@ -441,12 +446,12 @@ function bindEvents() {
 
   document.getElementById('saveAutostartBtn')?.addEventListener('click', async () => {
     const currentPassword = await requestSensitivePassword('Autostart ändern');
-    if (!currentPassword) return;
+    if (shouldRequirePasswordForDangerousActions() && !currentPassword) return;
     try {
       const enabled = document.getElementById('panelAutostartInput').checked;
       const asaEnabled = document.getElementById('asaAutostartInput').checked;
-      await api('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled, currentPassword }) });
-      await api('/api/actions/asa-autostart', { method: 'POST', body: JSON.stringify({ enabled: asaEnabled, currentPassword }) });
+      await api('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled, currentPassword, requirePassword: shouldRequirePasswordForDangerousActions() }) });
+      await api('/api/actions/asa-autostart', { method: 'POST', body: JSON.stringify({ enabled: asaEnabled, currentPassword, requirePassword: shouldRequirePasswordForDangerousActions() }) });
       setFeedback('Autostart aktualisiert.', 'success');
       await refreshDashboard();
     } catch (error) {
@@ -456,9 +461,9 @@ function bindEvents() {
 
   document.getElementById('repairPanelServiceBtn')?.addEventListener('click', async () => {
     const currentPassword = await requestSensitivePassword('Panel-Dienst neu registrieren');
-    if (!currentPassword) return;
+    if (shouldRequirePasswordForDangerousActions() && !currentPassword) return;
     try {
-      await api('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword }) });
+      await api('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: shouldRequirePasswordForDangerousActions() }) });
       setFeedback('Panel-Dienst neu registriert.', 'success');
       await refreshDashboard();
     } catch (error) {
@@ -523,13 +528,15 @@ function bindEvents() {
             result = await api('/api/actions/asa-update-check', { method: 'POST', body: JSON.stringify({}) });
           } else if (action === 'reboot-host') {
             const currentPassword = await requestSensitivePassword('Windows-Neustart');
-            if (!currentPassword) return;
+            if (shouldRequirePasswordForDangerousActions() && !currentPassword) return;
             const delaySeconds = Number(document.getElementById('rebootDelay').value || 0);
-            result = await api('/api/actions/reboot-host', { method: 'POST', body: JSON.stringify({ confirm: true, delaySeconds, currentPassword }) });
+            result = await api('/api/actions/reboot-host', { method: 'POST', body: JSON.stringify({ confirm: true, delaySeconds, currentPassword, requirePassword: shouldRequirePasswordForDangerousActions() }) });
           } else if (['stop', 'restart', 'asa-update', 'panel-update'].includes(action)) {
             const currentPassword = await requestSensitivePassword(action);
-            if (!currentPassword) return;
-            const payload = ['asa-update', 'panel-update'].includes(action) ? { confirm: true, currentPassword } : { currentPassword };
+            if (shouldRequirePasswordForDangerousActions() && !currentPassword) return;
+            const payload = ['asa-update', 'panel-update'].includes(action)
+              ? { confirm: true, currentPassword, requirePassword: shouldRequirePasswordForDangerousActions() }
+              : { currentPassword, requirePassword: shouldRequirePasswordForDangerousActions() };
             if (action === 'panel-update') {
               try {
                 result = await api(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(payload) });

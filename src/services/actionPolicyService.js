@@ -21,6 +21,11 @@ function requireRecentAuth(req, payload = {}, options = {}) {
     throw new PermissionError('Nicht angemeldet.', 'AUTH_REQUIRED');
   }
 
+  const requirePassword = options.requirePassword === true || payload.requirePassword === true;
+  if (!requirePassword) {
+    return { ok: true, required: false, maxAgeMs };
+  }
+
   const currentPassword = String(payload.currentPassword || '');
   if (!currentPassword.trim()) {
     throw new ValidationError('Passwortbestätigung erforderlich.', 'PASSWORD_CONFIRMATION_REQUIRED');

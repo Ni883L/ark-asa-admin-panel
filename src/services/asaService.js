@@ -173,6 +173,11 @@ function writeIni(filename, content) {
 }
 
 async function installOrUpdateServer() {
+  const status = await getStatus();
+  const normalizedStatus = String(status.status || '').toLowerCase();
+  if (normalizedStatus && normalizedStatus !== 'stopped') {
+    throw new Error(`ASA-Update nur im Stop-Zustand erlaubt. Aktueller Status: ${status.status || 'unbekannt'}`);
+  }
   await backupService.createBackup('pre-asa-update');
   const result = await powershell.run('steamcmd-install-or-update.ps1');
   logger.audit('system', 'asa-install-or-update');
