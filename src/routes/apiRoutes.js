@@ -205,7 +205,15 @@ router.post('/actions/panel-autostart', handleRoute(async (req, res) => {
   authService.requireRole(req, ['admin']);
   requireSensitiveActionAuth(req);
   const enabled = !!req.body?.enabled;
-  res.json({ ok: true, result: await asaService.setPanelAutostart(enabled) });
+  const result = await asaService.setPanelAutostart(enabled);
+  if (enabled) {
+    try {
+      await asaService.restartPanelService();
+    } catch (_error) {
+      // task is enabled already; restart may still require manual follow-up
+    }
+  }
+  res.json({ ok: true, result });
 }));
 
 router.get('/actions/asa-autostart-status', handleRoute(async (req, res) => {

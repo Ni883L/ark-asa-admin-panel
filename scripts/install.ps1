@@ -402,11 +402,13 @@ foreach ($dir in $dirs) {
 }
 
 if ($CreateStartupTask) {
-  $action = New-ScheduledTaskAction -Execute 'node' -Argument 'src/server.js' -WorkingDirectory $InstallPath
-  $trigger = New-ScheduledTaskTrigger -AtStartup
-  Register-ScheduledTask -TaskName 'ArkAsaAdminPanel' -Action $action -Trigger $trigger -RunLevel Highest -Force | Out-Null
+  powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-autostart.ps1') -Mode Enable -InstallPath $InstallPath | Out-Null
+  try {
+    Start-ScheduledTask -TaskName 'ArkAsaAdminPanel' | Out-Null
+  } catch {
+    Write-Warning (T "Panel-Autostart wurde registriert, konnte aber nicht sofort gestartet werden." "Panel autostart was registered but could not be started immediately.")
+  }
 }
-
 
 $envSettings = Get-EnvSettings (Join-Path $InstallPath '.env')
 $panelConnection = Resolve-PanelConnection $envSettings

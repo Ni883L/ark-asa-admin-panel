@@ -115,6 +115,7 @@ Hinweis: Das Install-Skript
 - prueft `node` und `npm`, bietet bei fehlenden Abhaengigkeiten einen kurzen Dialog zur automatischen Installation per `winget` und startet den Installer bei Bedarf automatisch in einem neuen Terminal neu (kein manueller Terminal-Neustart noetig),
 - nutzt Git, wenn vorhanden (schnelleres Sync/Update), kann bei Erstinstallation aber auch ohne Git ueber ZIP-Download installieren,
 - installiert nur die produktiven Node-Abhaengigkeiten (`npm install --omit=dev`),
+- kann beim Setup direkt einen dauerhaften Windows-Autostart-Task für das Panel registrieren und starten und
 - bietet am Ende den direkten Start des Panels an (mit Erreichbarkeitscheck auf `127.0.0.1`) und
 - gibt nach der Installation den Startbefehl sowie die Konfigurations-Website basierend auf `.env` aus (Schema/Host/Port aus `HTTPS_ENABLED`, `HOST`, `PORT`; erster Start ueber `/setup`).
 - enthaelt einen Guard gegen reservierte PowerShell-Variablennamen (z. B. `Host`), damit entsprechende Script-Versionen fruehzeitig mit klarer Meldung abgebrochen werden.
