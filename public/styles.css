@@ -69,6 +69,14 @@ code { background: #0b1020; padding: 2px 6px; border-radius: 6px; }
 .feedback.success { border-color: #166534; background: #052e16; color: #dcfce7; }
 .feedback.error { border-color: #991b1b; background: #3b0a0a; color: #fee2e2; }
 .feedback.info { border-color: #1d4ed8; background: #1e3a8a; color: #dbeafe; }
+.readiness-banner { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); font-weight: 700; }
+.readiness-banner small { display: block; font-weight: 500; opacity: 0.92; margin-top: 4px; }
+.readiness-banner.ready { background: #052e16; border-color: #166534; color: #dcfce7; }
+.readiness-banner.loading, .readiness-banner.starting { background: #3b2a06; border-color: #a16207; color: #fde68a; }
+.readiness-banner.running { background: #172554; border-color: #1d4ed8; color: #dbeafe; }
+.readiness-banner.offline { background: #111827; border-color: #475569; color: #d1d5db; }
+.readiness-banner.error { background: #3b0a0a; border-color: #991b1b; color: #fee2e2; }
+.readiness-banner.unknown { background: #1f2937; border-color: #4b5563; color: #e5e7eb; }
 @media (max-width: 1100px) {
   .grid { grid-template-columns: 1fr; }
   .card, .span-2 { grid-column: span 1; }

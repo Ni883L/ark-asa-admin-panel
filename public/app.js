@@ -97,6 +97,19 @@ function renderGameSettingsHelp() {
   }
 }
 
+function renderReadiness(metrics = {}) {
+  const target = document.getElementById('serverReadiness');
+  if (!target) return;
+  const readiness = metrics.readiness;
+  if (!readiness || !readiness.label) {
+    target.className = 'readiness-banner hidden';
+    target.innerHTML = '';
+    return;
+  }
+  target.className = `readiness-banner ${readiness.state || 'unknown'}`;
+  target.innerHTML = `${readiness.label}<small>${readiness.detail || ''}</small>`;
+}
+
 function renderStats(status = {}, metrics = {}, versions = {}) {
   const target = document.getElementById('statusGrid');
   if (!target) return;
@@ -259,6 +272,7 @@ async function refreshDashboard() {
   if (dashboardResult.status === 'fulfilled') {
     const data = dashboardResult.value;
     const versions = versionsResult.status === 'fulfilled' ? versionsResult.value : {};
+    renderReadiness(data.metrics || {});
     renderStats(data.status, data.metrics, versions);
     renderPlayers(data.players || []);
     renderBackups(data.backups || []);

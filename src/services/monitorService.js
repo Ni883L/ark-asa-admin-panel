@@ -8,6 +8,33 @@ function clampLines(lines, fallback = 200, max = 2000) {
   return Math.min(parsed, max);
 }
 
+function deriveServerReadiness(metrics = {}, logText = '') {
+  const status = String(metrics.status || '').toLowerCase();
+  const crashDetected = String(metrics.crashDetected || '').toLowerCase() === 'true';
+  const portsKnown = String(metrics.ports || '').toLowerCase() !== 'unknown';
+  const lowerLog = String(logText || '').toLowerCase();
+
+  if (crashDetected) {
+    return { state: 'error', label: 'Fehler / Crash erkannt', detail: 'Logs deuten auf Crash oder fatalen Fehler hin.' };
+  }
+  if (!status || status === 'stopped' || status === 'stop_pending') {
+    return { state: 'offline', label: 'Gestoppt', detail: 'Server ist aktuell nicht gestartet.' };
+  }
+  if (status === 'start_pending') {
+    return { state: 'starting', label: 'Startet', detail: 'Server wird gestartet.' };
+  }
+  if (status === 'running') {
+    if (lowerLog.includes('full startup') || lowerLog.includes('server startup complete') || lowerLog.includes('game server initialized')) {
+      return { state: 'ready', label: 'Läuft / bereit', detail: 'Server läuft und wirkt vollständig geladen.' };
+    }
+    if (portsKnown || lowerLog.includes('listening') || lowerLog.includes('primal game data took')) {
+      return { state: 'loading', label: 'Läuft / lädt noch', detail: 'Serverprozess läuft, Welt oder Dienste laden noch.' };
+    }
+    return { state: 'running', label: 'Läuft', detail: 'Serverprozess läuft, Ladezustand noch unklar.' };
+  }
+  return { state: 'unknown', label: 'Status unklar', detail: `Rohstatus: ${metrics.status || 'unbekannt'}` };
+}
+
 async function getMetrics() {
   const result = await powershell.run('status.ps1');
   const parsed = {};
@@ -17,6 +44,8 @@ async function getMetrics() {
     parsed[key] = rest.join('=');
   }
   parsed.portChecks = String(parsed.portsRaw || '').split(',').filter(Boolean);
+  const recentLog = getRecentLogs(300);
+  parsed.readiness = deriveServerReadiness(parsed, recentLog);
   return parsed;
 }
 
@@ -42,4 +71,4 @@ function parsePlayers() {
   return players.slice(-50).reverse();
 }
 
-module.exports = { getMetrics, getRecentLogs, parsePlayers, clampLines };
+module.exports = { getMetrics, getRecentLogs, parsePlayers, clampLines, deriveServerReadiness };
