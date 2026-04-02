@@ -722,6 +722,17 @@ const App = {
               result = await Api.request('/api/backups/create', { method: 'POST', body: JSON.stringify({ type: 'manual' }) });
             } else if (action === 'asa-update-check') {
               result = await Api.request('/api/actions/asa-update-check', { method: 'POST', body: JSON.stringify({}) });
+            } else if (action === 'start') {
+              try {
+                result = await Api.request('/api/actions/start', { method: 'POST', body: JSON.stringify({}) });
+              } catch (error) {
+                if (String(error.message || '').includes('Netzwerkfehler: API nicht erreichbar')) {
+                  UI.setFeedback('Serverstart wurde ausgelöst. Verbindung wird neu aufgebaut...', 'info');
+                  setTimeout(() => window.location.reload(), 5000);
+                  return;
+                }
+                throw error;
+              }
             } else if (action === 'reboot-host') {
               const currentPassword = await Actions.requestSensitivePassword('Windows-Neustart');
               if (Preferences.shouldRequirePassword() && !currentPassword) return;
