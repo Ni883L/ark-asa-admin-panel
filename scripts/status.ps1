@@ -9,6 +9,7 @@ $asaRoot = $env:ASA_SERVER_ROOT
 $status = 'stopped'
 $lastStart = ''
 $crashDetected = 'false'
+$currentRunCrashDetected = 'false'
 $ports = 'unknown'
 $portsRaw = ''
 $cpu = 'unknown'
@@ -87,9 +88,20 @@ if ($serviceName) {
 }
 
 $logTail = Get-RecentLogTail -Path $logPath
+$recentLogLines = $logTail
+if ($lastStart) {
+  $recentLogLines = $logTail | Where-Object { $_ -match [regex]::Escape(($lastStart -replace 'T', ' ')) }
+  if (-not $recentLogLines -or $recentLogLines.Count -eq 0) {
+    $recentLogLines = $logTail | Select-Object -Last 120
+  }
+}
 $lowerLog = ($logTail -join "`n").ToLowerInvariant()
+$lowerCurrentRunLog = ($recentLogLines -join "`n").ToLowerInvariant()
 if ($lowerLog -match 'crash|fatal|access violation') {
   $crashDetected = 'true'
+}
+if ($lowerCurrentRunLog -match 'crash|fatal|access violation') {
+  $currentRunCrashDetected = 'true'
 }
 if ($lowerLog -match 'the island|scorchedearth|aberration|extinction|forbiddenreach|thecenter|astraeos|bobsm') {
   $mapLoaded = 'true'
@@ -173,6 +185,7 @@ Write-Output "status=$status"
 Write-Output "lastStart=$lastStart"
 Write-Output "crashDetected=$crashDetected"
 Write-Output "cpu=$cpu"
+Write-Output "currentRunCrashDetected=$currentRunCrashDetected"
 Write-Output "memory=$memory"
 Write-Output "disk=$disk"
 Write-Output "ports=$ports"

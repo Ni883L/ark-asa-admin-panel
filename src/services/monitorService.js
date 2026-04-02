@@ -15,9 +15,10 @@ function deriveServerReadiness(metrics = {}, logText = '') {
   const mapLoaded = String(metrics.mapLoaded || '').toLowerCase() === 'true';
   const lowerLog = String(logText || '').toLowerCase();
   const mapName = metrics.loadedMap || metrics.mapName || '';
+  const currentRunOnly = String(metrics.currentRunCrashDetected || '').toLowerCase() === 'true';
 
-  if (crashDetected) {
-    return { state: 'error', label: 'Fehler / Crash erkannt', detail: 'Logs deuten auf Crash oder fatalen Fehler hin.' };
+  if (crashDetected && currentRunOnly) {
+    return { state: 'error', label: 'Fehler / Crash erkannt', detail: 'Logs des aktuellen Laufs deuten auf Crash oder fatalen Fehler hin.' };
   }
   if (!status || status === 'stopped' || status === 'stop_pending') {
     return { state: 'offline', label: 'Gestoppt', detail: 'Server ist aktuell nicht gestartet.' };
