@@ -475,6 +475,12 @@ code {
   align-items: center;
   gap: 8px;
 }
+.global-feedback {
+  position: sticky;
+  top: 10px;
+  z-index: 20;
+  margin: 0 0 12px;
+}
 .feedback.success { border-color: #166534; background: #052e16; color: #dcfce7; }
 .feedback.error { border-color: #991b1b; background: #3b0a0a; color: #fee2e2; }
 .feedback.info { border-color: #1d4ed8; background: #1e3a8a; color: #dbeafe; }

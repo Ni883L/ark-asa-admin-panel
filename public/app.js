@@ -24,16 +24,21 @@ const UI = {
   },
 
   setFeedback(message, type = 'info') {
-    const el = document.getElementById('actionFeedback');
-    const textEl = document.getElementById('actionFeedbackText');
-    if (!el || !textEl) return;
-    if (!message) {
-      el.className = 'feedback hidden';
-      textEl.textContent = '';
-      return;
+    const targets = [
+      { el: document.getElementById('actionFeedback'), text: document.getElementById('actionFeedbackText') },
+      { el: document.getElementById('globalFeedback'), text: document.getElementById('globalFeedbackText') }
+    ].filter((entry) => entry.el && entry.text);
+
+    if (!targets.length) return;
+    for (const target of targets) {
+      if (!message) {
+        target.el.className = target.el.id === 'globalFeedback' ? 'feedback hidden global-feedback' : 'feedback hidden';
+        target.text.textContent = '';
+      } else {
+        target.el.className = target.el.id === 'globalFeedback' ? `feedback global-feedback ${type}` : `feedback ${type}`;
+        target.text.textContent = message;
+      }
     }
-    el.className = `feedback ${type}`;
-    textEl.textContent = message;
   },
 
   setActionLog(actionLabel, result = {}) {
@@ -783,6 +788,7 @@ const App = {
     }
 
     document.getElementById('feedbackCloseBtn')?.addEventListener('click', () => UI.setFeedback('', 'info'));
+    document.getElementById('globalFeedbackCloseBtn')?.addEventListener('click', () => UI.setFeedback('', 'info'));
 
     for (const button of document.querySelectorAll('[data-main-tab]')) {
       button.addEventListener('click', () => UI.setMainTab(button.dataset.mainTab));
