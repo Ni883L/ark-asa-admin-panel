@@ -133,7 +133,7 @@ function renderPlayers(players = []) {
   const target = document.getElementById('players');
   if (!target) return;
   if (!players.length) {
-    target.innerHTML = '<p>Keine Spieler erkannt.</p>';
+    target.innerHTML = '<div class="summary-item"><strong>Keine Spieler erkannt</strong><div class="hint">Sobald Spieler verbunden sind oder Logs/RCON Daten liefern, erscheinen sie hier.</div></div>';
     return;
   }
   target.innerHTML = `<div class="item-list">${players.map((player) => `<div class="item"><strong>${player.name}</strong><div>ID: ${player.id || '-'}</div><div>Quelle: ${player.source || '-'}</div></div>`).join('')}</div>`;
@@ -142,7 +142,48 @@ function renderPlayers(players = []) {
 function renderBackups(backups = []) {
   const target = document.getElementById('backups');
   if (!target) return;
-  target.innerHTML = `<div class="item-list">${backups.map((backup) => `<div class="item"><strong>${backup.name}</strong><div>${backup.modifiedAt}</div><div>${backup.size} Bytes</div><button onclick="restoreBackup('${backup.name.replace(/'/g, "\\'")}')">Restore</button></div>`).join('')}</div>`;
+  if (!backups.length) {
+    target.innerHTML = '<div class="summary-item"><strong>Keine Backups vorhanden</strong><div class="hint">Erstelle zuerst ein manuelles Backup oder warte auf den nächsten automatischen Lauf.</div></div>';
+    return;
+  }
+  target.innerHTML = `<div class="item-list">${backups.map((backup) => `<div class="item backup-card"><strong>${backup.name}</strong><div class="backup-meta"><div>Geändert: ${backup.modifiedAt}</div><div>Größe: ${backup.size} Bytes</div></div><button onclick="restoreBackup('${backup.name.replace(/'/g, "\\'")}')">Restore</button></div>`).join('')}</div>`;
+}
+
+function renderKeyValueBlock(targetId, value) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  if (!value || typeof value !== 'object') {
+    target.innerHTML = '<div class="summary-item"><strong>Keine Daten</strong></div>';
+    return;
+  }
+  const entries = Array.isArray(value)
+    ? value.map((entry, index) => [`Eintrag ${index + 1}`, typeof entry === 'object' ? JSON.stringify(entry) : String(entry)])
+    : Object.entries(value);
+  target.innerHTML = entries.map(([key, val]) => `<div class="formatted-row"><strong>${key}</strong><span>${typeof val === 'string' ? val : JSON.stringify(val)}</span></div>`).join('');
+}
+
+function renderOverviewSummary(status = {}, metrics = {}, versions = {}) {
+  const target = document.getElementById('overviewSummary');
+  if (!target) return;
+  const items = [
+    {
+      title: 'Server',
+      text: metrics.readiness?.label || status.status || 'Unbekannt'
+    },
+    {
+      title: 'Karte',
+      text: metrics.loadedMap || metrics.mapName || 'Noch nicht erkannt'
+    },
+    {
+      title: 'Spiel-Version',
+      text: versions?.server?.version || 'Unbekannt'
+    },
+    {
+      title: 'Ports',
+      text: metrics.ports || 'unknown'
+    }
+  ];
+  target.innerHTML = items.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
 }
 
 function renderAccessHint() {
@@ -276,6 +317,7 @@ async function refreshDashboard() {
     const versions = versionsResult.status === 'fulfilled' ? versionsResult.value : {};
     renderReadiness(data.metrics || {});
     renderStats(data.status, data.metrics, versions);
+    renderOverviewSummary(data.status || {}, data.metrics || {}, versions || {});
     renderPlayers(data.players || []);
     renderBackups(data.backups || []);
     renderAccessHint();
@@ -287,11 +329,11 @@ async function refreshDashboard() {
   }
 
   if (profilesResult.status === 'fulfilled') document.getElementById('profilesEditor').value = JSON.stringify(profilesResult.value, null, 2);
-  if (healthResult.status === 'fulfilled') document.getElementById('healthInfo').textContent = JSON.stringify(healthResult.value, null, 2);
-  if (versionsResult.status === 'fulfilled') document.getElementById('versionInfo').textContent = JSON.stringify(versionsResult.value, null, 2);
+  if (healthResult.status === 'fulfilled') renderKeyValueBlock('healthInfo', healthResult.value);
+  if (versionsResult.status === 'fulfilled') renderKeyValueBlock('versionInfo', versionsResult.value);
   if (tasksResult.status === 'fulfilled') document.getElementById('tasksEditor').value = JSON.stringify(tasksResult.value.tasks || [], null, 2);
-  if (usersResult.status === 'fulfilled') document.getElementById('usersInfo').textContent = JSON.stringify(usersResult.value.users || [], null, 2);
-  if (auditResult.status === 'fulfilled') document.getElementById('auditInfo').textContent = (auditResult.value.entries || []).join('\n');
+  if (usersResult.status === 'fulfilled') renderKeyValueBlock('usersInfo', usersResult.value.users || []);
+  if (auditResult.status === 'fulfilled') renderKeyValueBlock('auditInfo', auditResult.value.entries || []);
 
   if (panelEnvResult.status === 'fulfilled') {
     document.getElementById('panelLanInput').checked = !!panelEnvResult.value.lanEnabled;

@@ -85,8 +85,10 @@
                   <h3>Status & Übersicht</h3>
                 </div>
               </div>
+
               <div id="statusGrid" class="stats"></div>
-              <div class="content-grid two-col compact-gap">
+
+              <div class="content-grid three-col compact-gap">
                 <div class="card emphasis-card">
                   <div class="section-header compact-header">
                     <div>
@@ -98,6 +100,7 @@
                   <div id="actionProgress" class="progress hidden"><div class="bar"></div></div>
                   <pre id="actionLog">Noch keine Aktionen ausgeführt.</pre>
                 </div>
+
                 <div class="card">
                   <div class="section-header compact-header">
                     <div>
@@ -106,6 +109,16 @@
                     </div>
                   </div>
                   <div id="players"></div>
+                </div>
+
+                <div class="card overview-summary-card">
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Kurzstatus</p>
+                      <h4>Was jetzt wichtig ist</h4>
+                    </div>
+                  </div>
+                  <div id="overviewSummary" class="summary-stack"></div>
                 </div>
               </div>
             </section>
@@ -155,13 +168,13 @@
               </div>
 
               <div class="content-grid two-col">
-                <div class="card">
+                <div class="card formatted-card">
                   <h4>Health</h4>
-                  <pre id="healthInfo"></pre>
+                  <div id="healthInfo" class="formatted-output"></div>
                 </div>
-                <div class="card">
+                <div class="card formatted-card">
                   <h4>Versionen</h4>
-                  <pre id="versionInfo"></pre>
+                  <div id="versionInfo" class="formatted-output"></div>
                 </div>
               </div>
             </section>
@@ -174,6 +187,9 @@
                 </div>
               </div>
               <div class="card emphasis-card">
+                <div class="backup-toolbar">
+                  <button data-action="backup">Backup jetzt erstellen</button>
+                </div>
                 <div id="backups"></div>
               </div>
             </section>
@@ -283,9 +299,9 @@
                     <button id="openFirewallBtn" type="button">Firewall-Port freigeben</button>
                   </div>
                 </div>
-                <div class="card">
+                <div class="card formatted-card">
                   <h4>Benutzer</h4>
-                  <pre id="usersInfo"></pre>
+                  <div id="usersInfo" class="formatted-output"></div>
                 </div>
               </div>
               <div class="content-grid two-col">
@@ -293,9 +309,9 @@
                   <h4>Logs</h4>
                   <pre id="logs"></pre>
                 </div>
-                <div class="card">
+                <div class="card formatted-card">
                   <h4>Audit-Log</h4>
-                  <pre id="auditInfo"></pre>
+                  <div id="auditInfo" class="formatted-output"></div>
                 </div>
               </div>
             </section>
