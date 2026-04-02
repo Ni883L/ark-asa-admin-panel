@@ -58,15 +58,18 @@
 
         <div class="main-shell">
           <header class="topbar topbar-redesign">
-            <div class="topbar-main">
+            <div class="topbar-main topbar-split">
               <div>
                 <p class="eyebrow">Dashboard</p>
                 <h2>ARK ASA Admin Panel</h2>
                 <p id="welcome" class="topbar-subtitle"></p>
               </div>
-              <div class="topbar-meta">
+              <div class="hero-status-grid">
                 <div id="serverReadiness" class="readiness-banner hidden"></div>
-                <div id="accessHint" class="hint"></div>
+                <div class="hero-meta-card">
+                  <span class="hero-label">Zugriff</span>
+                  <div id="accessHint" class="hint"></div>
+                </div>
               </div>
             </div>
             <div class="topbar-actions">
@@ -84,25 +87,27 @@
               </div>
               <div id="statusGrid" class="stats"></div>
               <div class="content-grid two-col compact-gap">
-                <div class="card">
-                  <h4>Schnellaktionen</h4>
-                  <div class="actions stack-actions">
-                    <button data-action="start">Start</button>
-                    <button data-action="stop" class="warn">Stop</button>
-                    <button data-action="restart">Restart</button>
-                    <button data-action="backup">Backup</button>
-                    <button data-action="reboot-host" class="danger">Windows neu starten</button>
+                <div class="card emphasis-card">
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Live</p>
+                      <h4>Letzte Aktionen</h4>
+                    </div>
                   </div>
-                  <label>Neustart-Verzögerung (Sekunden)<input id="rebootDelay" type="number" min="0" step="1" value="60" /></label>
+                  <div id="actionFeedback" class="feedback hidden"><span id="actionFeedbackText"></span><button id="feedbackCloseBtn" class="ghost" type="button">✕</button></div>
+                  <div id="actionProgress" class="progress hidden"><div class="bar"></div></div>
+                  <pre id="actionLog">Noch keine Aktionen ausgeführt.</pre>
                 </div>
                 <div class="card">
-                  <h4>Spieler</h4>
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Spieler</p>
+                      <h4>Online / erkannt</h4>
+                    </div>
+                  </div>
                   <div id="players"></div>
                 </div>
               </div>
-              <div id="actionFeedback" class="feedback hidden"><span id="actionFeedbackText"></span><button id="feedbackCloseBtn" class="ghost" type="button">✕</button></div>
-              <div id="actionProgress" class="progress hidden"><div class="bar"></div></div>
-              <pre id="actionLog">Noch keine Aktionen ausgeführt.</pre>
             </section>
 
             <section class="section-panel hidden" data-panel="server">
@@ -112,18 +117,50 @@
                   <h3>Betrieb & Versionen</h3>
                 </div>
               </div>
+
               <div class="content-grid two-col">
                 <div class="card">
-                  <h4>Updates</h4>
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Steuerung</p>
+                      <h4>Schnellaktionen</h4>
+                    </div>
+                  </div>
+                  <div class="actions stack-actions">
+                    <button data-action="start">Start</button>
+                    <button data-action="stop" class="warn">Stop</button>
+                    <button data-action="restart">Restart</button>
+                    <button data-action="backup">Backup</button>
+                  </div>
+                  <div class="danger-zone">
+                    <span class="danger-zone-label">Danger Zone</span>
+                    <label>Neustart-Verzögerung (Sekunden)<input id="rebootDelay" type="number" min="0" step="1" value="60" /></label>
+                    <button data-action="reboot-host" class="danger">Windows neu starten</button>
+                  </div>
+                </div>
+
+                <div class="card emphasis-card">
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Updates</p>
+                      <h4>Spiel & Panel</h4>
+                    </div>
+                  </div>
                   <div class="actions stack-actions">
                     <button data-action="asa-update-check">ASA-Update prüfen</button>
                     <button data-action="asa-update">Spieledateien installieren/aktualisieren</button>
                     <button data-action="panel-update">Panel-Update</button>
                   </div>
                 </div>
+              </div>
+
+              <div class="content-grid two-col">
                 <div class="card">
-                  <h4>Health & Versionen</h4>
+                  <h4>Health</h4>
                   <pre id="healthInfo"></pre>
+                </div>
+                <div class="card">
+                  <h4>Versionen</h4>
                   <pre id="versionInfo"></pre>
                 </div>
               </div>
@@ -136,7 +173,7 @@
                   <h3>Sicherungen & Restore</h3>
                 </div>
               </div>
-              <div class="card">
+              <div class="card emphasis-card">
                 <div id="backups"></div>
               </div>
             </section>
@@ -175,7 +212,12 @@
               </div>
 
               <div class="card">
-                <h4>INI-Konfigurationen</h4>
+                <div class="section-header compact-header">
+                  <div>
+                    <p class="eyebrow">INI</p>
+                    <h4>Konfigurationsdateien</h4>
+                  </div>
+                </div>
                 <div class="tabs">
                   <button data-config="GameUserSettings.ini">GameUserSettings.ini</button>
                   <button data-config="Game.ini">Game.ini</button>

@@ -121,6 +121,10 @@ body {
   align-items: flex-start;
 }
 
+.topbar-split {
+  align-items: stretch;
+}
+
 .topbar-main h2 {
   margin: 0;
   font-size: 1.5rem;
@@ -140,6 +144,28 @@ body {
   gap: 10px;
 }
 
+.hero-status-grid {
+  display: grid;
+  gap: 12px;
+  min-width: min(420px, 100%);
+}
+
+.hero-meta-card {
+  border: 1px solid var(--border);
+  background: rgba(9, 16, 31, 0.9);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+
+.hero-label {
+  display: inline-block;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .72rem;
+  color: var(--muted);
+}
+
 .dashboard-sections {
   display: grid;
   gap: 20px;
@@ -155,6 +181,10 @@ body {
   justify-content: space-between;
   align-items: end;
   gap: 12px;
+}
+
+.compact-header {
+  align-items: center;
 }
 
 .section-header h3,
@@ -182,6 +212,11 @@ body {
   box-shadow: 0 10px 25px rgba(0,0,0,.22);
 }
 
+.emphasis-card {
+  border-color: #3b4d82;
+  box-shadow: 0 12px 30px rgba(0,0,0,.28);
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -201,6 +236,22 @@ body {
   border-radius: 16px;
   padding: 12px;
   margin-bottom: 12px;
+}
+
+.danger-zone {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(239, 68, 68, 0.5);
+  display: grid;
+  gap: 10px;
+}
+
+.danger-zone-label {
+  color: #fecaca;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .72rem;
 }
 
 label { display: block; margin: 10px 0; }
@@ -286,8 +337,8 @@ code {
 .feedback.info { border-color: #1d4ed8; background: #1e3a8a; color: #dbeafe; }
 
 .readiness-banner {
-  padding: 12px 14px;
-  border-radius: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
   border: 1px solid var(--border);
   font-weight: 700;
   min-width: 280px;
@@ -315,7 +366,7 @@ code {
   animation: loading 1.2s infinite ease-in-out;
 }
 
-#actionLog { margin-top: 10px; min-height: 120px; max-height: 220px; }
+#actionLog { margin-top: 10px; min-height: 140px; max-height: 260px; }
 
 @keyframes loading {
   0% { transform: translateX(-100%); }
@@ -336,7 +387,12 @@ code {
     grid-template-columns: 1fr;
   }
 
-  .topbar-main {
+  .topbar-main,
+  .topbar-split {
     flex-direction: column;
+  }
+
+  .hero-status-grid {
+    min-width: 0;
   }
 }
