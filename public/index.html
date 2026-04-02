@@ -22,10 +22,9 @@
       </section>
 
       <section id="wizardView" class="view hidden">
-        <div class="card span-2">
+        <div class="card span-2 wizard-shell">
           <h2>Ersteinrichtung</h2>
           <p class="section-hint">1) ASA-Pfad prüfen, 2) Server erkennen, 3) Einrichtung abschließen.</p>
-          <p>Pfad prüfen, ASA-Dateien erkennen und Grundeinstellungen speichern.</p>
           <label>ASA-Serverpfad<input id="wizardAsaPath" placeholder="C:\ARK\ASA" /></label>
           <div class="actions">
             <button id="detectServerBtn">Server erkennen</button>
@@ -35,157 +34,231 @@
         </div>
       </section>
 
-      <section id="dashboardView" class="view hidden">
-        <header class="topbar">
-          <div>
-            <h1>ARK ASA Admin Panel</h1>
-            <p id="welcome"></p>
-            <nav class="main-tabs" aria-label="Dashboard Themen">
-              <button class="main-tab active" data-main-tab="overview" type="button">📊 Überblick</button>
-              <button class="main-tab" data-main-tab="config" type="button">⚙️ Konfiguration</button>
-              <button class="main-tab" data-main-tab="operations" type="button">🧰 Betrieb</button>
-            </nav>
+      <section id="dashboardView" class="view hidden app-shell">
+        <aside class="sidebar">
+          <div class="sidebar-brand">
+            <h1>ARK ASA</h1>
+            <p>Admin Panel</p>
           </div>
-          <div class="topbar-actions">
-            <button id="toggleBannerBtn" class="secondary" type="button">Banner ausblenden</button>
+
+          <nav class="sidebar-nav" aria-label="Hauptnavigation">
+            <button class="sidebar-link active" data-main-tab="overview" type="button">📊 Überblick</button>
+            <button class="sidebar-link" data-main-tab="server" type="button">🖥️ Server</button>
+            <button class="sidebar-link" data-main-tab="backups" type="button">💾 Backups</button>
+            <button class="sidebar-link" data-main-tab="config" type="button">⚙️ Konfiguration</button>
+            <button class="sidebar-link" data-main-tab="automation" type="button">🕒 Automationen</button>
+            <button class="sidebar-link" data-main-tab="system" type="button">🧰 System</button>
+          </nav>
+
+          <div class="sidebar-footer">
             <button id="refreshBtn">Aktualisieren</button>
             <button id="logoutBtn" class="secondary">Logout</button>
           </div>
-        </header>
+        </aside>
 
-        <nav class="main-tabs" aria-label="Dashboard Themen">
-          <button class="main-tab active" data-main-tab="overview" type="button">📊 Überblick</button>
-          <button class="main-tab" data-main-tab="config" type="button">⚙️ Konfiguration</button>
-          <button class="main-tab" data-main-tab="operations" type="button">🧰 Betrieb</button>
-        </nav>
-
-        <main class="grid">
-          <section class="card span-2" data-panel="overview">
-            <h2>Dashboard</h2>
-            <p class="section-hint">Wichtige Serveraktionen, Update-Checks und Systemzustand auf einen Blick.</p>
-            <div id="serverReadiness" class="readiness-banner hidden"></div>
-            <div id="statusGrid" class="stats"></div>
-            <div class="actions">
-              <button data-action="start">Start</button>
-              <button data-action="stop" class="warn">Stop</button>
-              <button data-action="restart">Restart</button>
-              <button data-action="asa-update-check">ASA-Update prüfen</button>
-              <button data-action="asa-update">Spieledateien installieren/aktualisieren</button>
-              <button data-action="panel-update">Panel-Update</button>
-              <button data-action="backup">Backup</button>
-              <button data-action="reboot-host" class="danger">Windows neu starten</button>
-            </div>
-            <label>Neustart-Verzögerung (Sekunden)<input id="rebootDelay" type="number" min="0" step="1" value="60" /></label>
-            <div id="actionFeedback" class="feedback hidden"><span id="actionFeedbackText"></span><button id="feedbackCloseBtn" class="ghost" type="button">✕</button></div>
-            <div id="actionProgress" class="progress hidden"><div class="bar"></div></div>
-            <pre id="actionLog">Noch keine Aktionen ausgeführt.</pre>
-            <div id="accessHint" class="hint"></div>
-          </section>
-
-          <section class="card" data-panel="overview">
-            <h2>Spieler</h2>
-            <p class="section-hint">Erkannte Spieler aus Logs/RCON.</p>
-            <div id="players"></div>
-          </section>
-
-          <section class="card span-2" data-panel="config">
-            <h2>Profile & Startparameter</h2>
-            <p class="section-hint">Serverprofile bearbeiten und Startparameter speichern.</p>
-            <textarea id="profilesEditor" rows="14"></textarea>
-            <button id="saveProfilesBtn">Profile speichern</button>
-          </section>
-
-          <section class="card" data-panel="operations">
-            <h2>Backups</h2>
-            <p class="section-hint">Verfügbare Sicherungen und Restore.</p>
-            <div id="backups"></div>
-          </section>
-
-          <section class="card span-2" data-panel="config">
-            <h2>Konfigurationen</h2>
-            <p class="section-hint">INI-Dateien direkt anzeigen und anpassen.</p>
-            <div class="tabs">
-              <button data-config="GameUserSettings.ini">GameUserSettings.ini</button>
-              <button data-config="Game.ini">Game.ini</button>
-              <button data-config="Engine.ini">Engine.ini</button>
-            </div>
-            <div class="tabs config-mode-tabs">
-              <button type="button" class="active" data-config-mode="editor">INI-Editor</button>
-              <button type="button" data-config-mode="catalog">GameSettings-Katalog</button>
-            </div>
-            <div id="configModeEditor" class="config-mode-panel">
-              <textarea id="configEditor" rows="16"></textarea>
-            </div>
-            <div id="configModeCatalog" class="config-mode-panel hidden">
-              <div class="settings-helper">
-                <h3>GameSettings-Katalog</h3>
-                <p class="section-hint">Erklärungen + Beispiele. Klick auf „In Editor einfügen“, dann im INI-Editor speichern.</p>
-                <input id="gameSettingsFilter" placeholder="Nach Schlüssel, Beschreibung oder INI filtern..." />
-                <div id="gameSettingsHelp" class="item-list"></div>
+        <div class="main-shell">
+          <header class="topbar topbar-redesign">
+            <div class="topbar-main">
+              <div>
+                <p class="eyebrow">Dashboard</p>
+                <h2>ARK ASA Admin Panel</h2>
+                <p id="welcome" class="topbar-subtitle"></p>
+              </div>
+              <div class="topbar-meta">
+                <div id="serverReadiness" class="readiness-banner hidden"></div>
+                <div id="accessHint" class="hint"></div>
               </div>
             </div>
-            <label class="checkbox-row"><input id="requirePasswordForDangerousActions" type="checkbox" /> Passwort für kritische Aktionen zusätzlich abfragen</label>
-            <div class="actions">
-              <button id="saveConfigBtn">Config speichern</button>
+            <div class="topbar-actions">
+              <button id="toggleBannerBtn" class="secondary" type="button">Banner ausblenden</button>
             </div>
-          </section>
+          </header>
 
-          <section class="card span-2" data-panel="overview">
-            <h2>Logs</h2>
-            <p class="section-hint">Letzte Servermeldungen zur schnellen Diagnose.</p>
-            <pre id="logs"></pre>
-          </section>
-
-          <section class="card" data-panel="config">
-            <h2>Einstellungen</h2>
-            <p class="section-hint">Panel-Einstellungen als JSON verwalten (z. B. autoAsaUpdate).</p>
-            <div class="settings-form">
-              <label class="checkbox-row"><input id="panelLanInput" type="checkbox" /> LAN-Zugriff aktivieren (setzt HOST auf 0.0.0.0)</label>
-              <label>Panel Host (HOST)<input id="panelHostInput" placeholder="127.0.0.1 oder 0.0.0.0" /></label>
-              <label>Panel Port (PORT)<input id="panelPortInput" type="number" min="1" max="65535" value="3000" /></label>
-              <label class="checkbox-row"><input id="panelHttpsInput" type="checkbox" /> HTTPS aktivieren</label>
-              <label>HTTPS Zertifikat (HTTPS_CERT_PATH)<input id="panelHttpsCertInput" placeholder="C:\\certs\\panel.crt" /></label>
-              <label>HTTPS Key (HTTPS_KEY_PATH)<input id="panelHttpsKeyInput" placeholder="C:\\certs\\panel.key" /></label>
-              <label class="checkbox-row"><input id="autoAsaUpdateInput" type="checkbox" /> ASA-Updates automatisch installieren</label>
-              <label class="checkbox-row"><input id="panelAutostartInput" type="checkbox" /> Panel-Dienst Autostart (Windows Task)</label>
-              <label class="checkbox-row"><input id="asaAutostartInput" type="checkbox" /> ARK-Server-Dienst Auto-Start (Windows Service)</label>
-              <div class="actions">
-                <button id="savePanelOptionsBtn">Optionen speichern</button>
-                <button id="restartPanelServiceBtn" class="warn">Webdienst neu starten</button>
-                <button id="checkFirewallBtn" type="button">Firewall prüfen</button>
-                <button id="openFirewallBtn" type="button">Firewall-Port freigeben</button>
-                <button id="saveAutostartBtn" type="button">Autostart anwenden</button>
-                <button id="repairPanelServiceBtn" type="button">Panel-Dienst neu registrieren</button>
+          <main class="dashboard-sections">
+            <section class="section-panel" data-panel="overview">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow">Überblick</p>
+                  <h3>Status & Übersicht</h3>
+                </div>
               </div>
-            </div>
-            <textarea id="settingsEditor" rows="12"></textarea>
-            <button id="saveSettingsBtn">Einstellungen speichern</button>
-          </section>
+              <div id="statusGrid" class="stats"></div>
+              <div class="content-grid two-col compact-gap">
+                <div class="card">
+                  <h4>Schnellaktionen</h4>
+                  <div class="actions stack-actions">
+                    <button data-action="start">Start</button>
+                    <button data-action="stop" class="warn">Stop</button>
+                    <button data-action="restart">Restart</button>
+                    <button data-action="backup">Backup</button>
+                    <button data-action="reboot-host" class="danger">Windows neu starten</button>
+                  </div>
+                  <label>Neustart-Verzögerung (Sekunden)<input id="rebootDelay" type="number" min="0" step="1" value="60" /></label>
+                </div>
+                <div class="card">
+                  <h4>Spieler</h4>
+                  <div id="players"></div>
+                </div>
+              </div>
+              <div id="actionFeedback" class="feedback hidden"><span id="actionFeedbackText"></span><button id="feedbackCloseBtn" class="ghost" type="button">✕</button></div>
+              <div id="actionProgress" class="progress hidden"><div class="bar"></div></div>
+              <pre id="actionLog">Noch keine Aktionen ausgeführt.</pre>
+            </section>
 
-          <section class="card" data-panel="overview">
-            <h2>Health & Versionen</h2>
-            <p class="section-hint">Systemzustand und Versionsinformationen.</p>
-            <pre id="healthInfo"></pre>
-            <pre id="versionInfo"></pre>
-          </section>
+            <section class="section-panel hidden" data-panel="server">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow">Server</p>
+                  <h3>Betrieb & Versionen</h3>
+                </div>
+              </div>
+              <div class="content-grid two-col">
+                <div class="card">
+                  <h4>Updates</h4>
+                  <div class="actions stack-actions">
+                    <button data-action="asa-update-check">ASA-Update prüfen</button>
+                    <button data-action="asa-update">Spieledateien installieren/aktualisieren</button>
+                    <button data-action="panel-update">Panel-Update</button>
+                  </div>
+                </div>
+                <div class="card">
+                  <h4>Health & Versionen</h4>
+                  <pre id="healthInfo"></pre>
+                  <pre id="versionInfo"></pre>
+                </div>
+              </div>
+            </section>
 
-          <section class="card span-2" data-panel="config">
-            <h2>Geplante Tasks</h2>
-            <p class="section-hint">Wiederkehrende Aufgaben (Backup/Update/Reboot) planen.</p>
-            <textarea id="tasksEditor" rows="10"></textarea>
-            <button id="saveTasksBtn">Tasks speichern</button>
-          </section>
+            <section class="section-panel hidden" data-panel="backups">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow">Backups</p>
+                  <h3>Sicherungen & Restore</h3>
+                </div>
+              </div>
+              <div class="card">
+                <div id="backups"></div>
+              </div>
+            </section>
 
-          <section class="card" data-panel="operations">
-            <h2>Benutzer</h2>
-            <pre id="usersInfo"></pre>
-          </section>
+            <section class="section-panel hidden" data-panel="config">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow">Konfiguration</p>
+                  <h3>Profile, INIs & Panel</h3>
+                </div>
+              </div>
+              <div class="content-grid two-col">
+                <div class="card">
+                  <h4>Profile & Startparameter</h4>
+                  <textarea id="profilesEditor" rows="14"></textarea>
+                  <button id="saveProfilesBtn">Profile speichern</button>
+                </div>
+                <div class="card">
+                  <h4>Panel-Einstellungen</h4>
+                  <div class="settings-form">
+                    <label class="checkbox-row"><input id="panelLanInput" type="checkbox" /> LAN-Zugriff aktivieren (setzt HOST auf 0.0.0.0)</label>
+                    <label>Panel Host (HOST)<input id="panelHostInput" placeholder="127.0.0.1 oder 0.0.0.0" /></label>
+                    <label>Panel Port (PORT)<input id="panelPortInput" type="number" min="1" max="65535" value="3000" /></label>
+                    <label class="checkbox-row"><input id="panelHttpsInput" type="checkbox" /> HTTPS aktivieren</label>
+                    <label>HTTPS Zertifikat (HTTPS_CERT_PATH)<input id="panelHttpsCertInput" placeholder="C:\certs\panel.crt" /></label>
+                    <label>HTTPS Key (HTTPS_KEY_PATH)<input id="panelHttpsKeyInput" placeholder="C:\certs\panel.key" /></label>
+                    <label class="checkbox-row"><input id="autoAsaUpdateInput" type="checkbox" /> ASA-Updates automatisch installieren</label>
+                    <label class="checkbox-row"><input id="requirePasswordForDangerousActions" type="checkbox" /> Passwort für kritische Aktionen zusätzlich abfragen</label>
+                    <div class="actions wrap-actions">
+                      <button id="savePanelOptionsBtn">Optionen speichern</button>
+                      <button id="saveSettingsBtn">JSON speichern</button>
+                    </div>
+                  </div>
+                  <textarea id="settingsEditor" rows="10"></textarea>
+                </div>
+              </div>
 
-          <section class="card span-2" data-panel="operations">
-            <h2>Audit-Log</h2>
-            <pre id="auditInfo"></pre>
-          </section>
-        </main>
+              <div class="card">
+                <h4>INI-Konfigurationen</h4>
+                <div class="tabs">
+                  <button data-config="GameUserSettings.ini">GameUserSettings.ini</button>
+                  <button data-config="Game.ini">Game.ini</button>
+                  <button data-config="Engine.ini">Engine.ini</button>
+                </div>
+                <div class="tabs config-mode-tabs">
+                  <button type="button" class="active" data-config-mode="editor">INI-Editor</button>
+                  <button type="button" data-config-mode="catalog">GameSettings-Katalog</button>
+                </div>
+                <div id="configModeEditor" class="config-mode-panel">
+                  <textarea id="configEditor" rows="16"></textarea>
+                </div>
+                <div id="configModeCatalog" class="config-mode-panel hidden">
+                  <div class="settings-helper">
+                    <input id="gameSettingsFilter" placeholder="Nach Schlüssel, Beschreibung oder INI filtern..." />
+                    <div id="gameSettingsHelp" class="item-list"></div>
+                  </div>
+                </div>
+                <div class="actions wrap-actions">
+                  <button id="saveConfigBtn">Config speichern</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="section-panel hidden" data-panel="automation">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow">Automationen</p>
+                  <h3>Tasks & Autostart</h3>
+                </div>
+              </div>
+              <div class="content-grid two-col">
+                <div class="card">
+                  <h4>Geplante Tasks</h4>
+                  <textarea id="tasksEditor" rows="12"></textarea>
+                  <button id="saveTasksBtn">Tasks speichern</button>
+                </div>
+                <div class="card">
+                  <h4>Autostart</h4>
+                  <label class="checkbox-row"><input id="panelAutostartInput" type="checkbox" /> Panel-Dienst Autostart (Windows Task)</label>
+                  <label class="checkbox-row"><input id="asaAutostartInput" type="checkbox" /> ARK-Server-Dienst Auto-Start (Windows Service)</label>
+                  <div class="actions stack-actions">
+                    <button id="saveAutostartBtn" type="button">Autostart anwenden</button>
+                    <button id="repairPanelServiceBtn" type="button">Panel-Dienst neu registrieren</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="section-panel hidden" data-panel="system">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow">System</p>
+                  <h3>Firewall, Logs & Audit</h3>
+                </div>
+              </div>
+              <div class="content-grid two-col">
+                <div class="card">
+                  <h4>Panel-Betrieb</h4>
+                  <div class="actions stack-actions">
+                    <button id="restartPanelServiceBtn" class="warn">Webdienst neu starten</button>
+                    <button id="checkFirewallBtn" type="button">Firewall prüfen</button>
+                    <button id="openFirewallBtn" type="button">Firewall-Port freigeben</button>
+                  </div>
+                </div>
+                <div class="card">
+                  <h4>Benutzer</h4>
+                  <pre id="usersInfo"></pre>
+                </div>
+              </div>
+              <div class="content-grid two-col">
+                <div class="card">
+                  <h4>Logs</h4>
+                  <pre id="logs"></pre>
+                </div>
+                <div class="card">
+                  <h4>Audit-Log</h4>
+                  <pre id="auditInfo"></pre>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
       </section>
     </div>
     <script src="/app.js"></script>
