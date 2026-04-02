@@ -39,8 +39,8 @@ function Resolve-NodePath {
 function Get-PanelProcesses([int]$PortNumber) {
   $connections = Get-NetTCPConnection -LocalPort $PortNumber -State Listen -ErrorAction SilentlyContinue
   $processIds = @($connections | Select-Object -ExpandProperty OwningProcess -Unique)
-  foreach ($pid in $processIds) {
-    $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
+  foreach ($processId in $processIds) {
+    $proc = Get-Process -Id $processId -ErrorAction SilentlyContinue
     if ($proc) { $proc }
   }
 }
