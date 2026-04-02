@@ -63,7 +63,7 @@ function getServerBuildInfo() {
   if (ps.status === 0 && stdout) fileVersion = stdout;
 
   const versionLabel = logVersion || fileVersion || null;
-  const displayVersion = [versionLabel, installedBuild ? `Build ${installedBuild}` : null].filter(Boolean).join(' • ');
+  const displayVersion = versionLabel || (installedBuild ? `Build ${installedBuild}` : null);
 
   return {
     installed: true,

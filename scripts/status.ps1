@@ -126,11 +126,23 @@ if ($proc) {
 }
 
 try {
-  $cpuCounter = Get-Counter '\Processor(_Total)\% Processor Time' -ErrorAction Stop
+  $cpuCounter = Get-Counter '\Processor Information(_Total)\% Processor Utility' -ErrorAction SilentlyContinue
+  if (-not $cpuCounter -or -not $cpuCounter.CounterSamples.Count) {
+    $cpuCounter = Get-Counter '\Processor(_Total)\% Processor Time' -ErrorAction Stop
+  }
   $cpuValue = [math]::Round($cpuCounter.CounterSamples[0].CookedValue, 1)
   $cpu = "$cpuValue %"
 } catch {
-  $cpu = 'unknown'
+  try {
+    $cpuFallback = Get-CimInstance Win32_Processor -ErrorAction Stop | Measure-Object -Property LoadPercentage -Average
+    if ($cpuFallback.Average -ne $null) {
+      $cpu = "$([math]::Round([double]$cpuFallback.Average, 1)) %"
+    } else {
+      $cpu = 'unknown'
+    }
+  } catch {
+    $cpu = 'unknown'
+  }
 }
 
 try {

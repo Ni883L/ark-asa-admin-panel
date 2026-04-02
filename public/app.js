@@ -137,8 +137,7 @@ const Renderers = {
     const fields = {
       Serverstatus: status.status || metrics.status || 'unknown',
       Profil: status.activeProfile?.name || '-',
-      'Spiel-Version': versions?.server?.version || '-',
-      'Version-Quelle': versions?.server?.source || '-',
+      'Spiel-Version': versions?.server?.rawVersion || versions?.server?.buildId || versions?.server?.version || '-',
       'CPU (System)': metrics.cpu || '-',
       'RAM (System)': metrics.memory || '-',
       Disk: metrics.disk || '-',
