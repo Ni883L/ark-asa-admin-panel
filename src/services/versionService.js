@@ -35,8 +35,8 @@ function getServerBuildInfo() {
 
   let logVersion = null;
   if (defaults.asa.logPath && fs.existsSync(defaults.asa.logPath)) {
-    const tail = fs.readFileSync(defaults.asa.logPath, 'utf8').split(/\r?\n/).slice(-600).join('\n');
-    const match = tail.match(/ASA Version\s+([^\r\n]+)/i);
+    const tail = fs.readFileSync(defaults.asa.logPath, 'utf8').split(/\r?\n/).slice(-1200).join('\n');
+    const match = tail.match(/(?:ARK|ASA) Version[:\s]+([^\r\n]+)/i);
     if (match && match[1]) logVersion = match[1].trim();
   }
 

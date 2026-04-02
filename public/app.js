@@ -142,7 +142,7 @@ const Renderers = {
     const fields = {
       Serverstatus: status.status || metrics.status || 'unknown',
       Profil: status.activeProfile?.name || '-',
-      'Spiel-Version': versions?.server?.rawVersion || versions?.server?.buildId || versions?.server?.version || '-',
+      'Spiel-Version': versions?.server?.version || versions?.server?.buildId || '-',
       'CPU (System)': metrics.cpu || '-',
       'RAM (System)': metrics.memory || '-',
       Disk: metrics.disk || '-',
