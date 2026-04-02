@@ -210,6 +210,14 @@ if (-not $npmCommand) {
 & $npmCommand install --omit=dev --no-audit --no-fund
 Write-Output "update complete from $previousCommit"
 Write-Output "minimal backup created: $backup"
+
+try {
+  & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-restart.ps1') -InstallPath $InstallPath -Port 3000 | Out-Null
+  Write-Output "panel restart completed"
+} catch {
+  Write-Warning "panel restart failed after update: $($_.Exception.Message)"
+}
+
 $panelConnection = Resolve-PanelConnection (Get-EnvSettings (Join-Path $InstallPath '.env'))
 Write-Output "Install location: $InstallPath"
 Write-Output "Start panel with: cd '$InstallPath' ; npm start"
