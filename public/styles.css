@@ -376,16 +376,38 @@ pre {
 }
 
 .formatted-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  gap: 10px;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 12px;
   background: rgba(9, 16, 31, 0.75);
 }
 
+.formatted-row > strong {
+  color: var(--text);
+}
+
 .formatted-row span {
+  color: var(--muted);
+}
+
+.formatted-nested {
+  display: grid;
+  gap: 8px;
+}
+
+.formatted-nested-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px dashed rgba(159, 176, 224, 0.2);
+  padding-top: 6px;
+}
+
+.formatted-list {
+  margin: 0;
+  padding-left: 18px;
   color: var(--muted);
 }
 

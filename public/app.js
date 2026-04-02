@@ -178,9 +178,16 @@ const Renderers = {
       return;
     }
     const entries = Array.isArray(value)
-      ? value.map((entry, index) => [`Eintrag ${index + 1}`, typeof entry === 'object' ? JSON.stringify(entry) : String(entry)])
+      ? value.map((entry, index) => [`Eintrag ${index + 1}`, entry])
       : Object.entries(value);
-    target.innerHTML = entries.map(([key, val]) => `<div class="formatted-row"><strong>${key}</strong><span>${typeof val === 'string' ? val : JSON.stringify(val)}</span></div>`).join('');
+    target.innerHTML = entries.map(([key, val]) => {
+      const rendered = Array.isArray(val)
+        ? (val.length ? `<ul class="formatted-list">${val.map((item) => `<li>${typeof item === 'string' ? item : JSON.stringify(item)}</li>`).join('')}</ul>` : '<span class="hint">leer</span>')
+        : (val && typeof val === 'object')
+          ? `<div class="formatted-nested">${Object.entries(val).map(([nestedKey, nestedVal]) => `<div class="formatted-nested-row"><strong>${nestedKey}</strong><span>${typeof nestedVal === 'string' ? nestedVal : JSON.stringify(nestedVal)}</span></div>`).join('')}</div>`
+          : `<span>${typeof val === 'string' ? val : JSON.stringify(val)}</span>`;
+      return `<div class="formatted-row"><strong>${key}</strong>${rendered}</div>`;
+    }).join('');
   },
 
   renderAuditEntries(entries = []) {
