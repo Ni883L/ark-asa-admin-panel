@@ -753,7 +753,8 @@ const App = {
                 try {
                   result = await Api.request(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(payload) });
                 } catch (error) {
-                  if (String(error.message || '').includes('Netzwerkfehler: API nicht erreichbar')) {
+                  const message = String(error.message || '');
+                  if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
                     UI.setFeedback('Panel-Update läuft. Verbindung wird neu aufgebaut...', 'info');
                     setTimeout(() => window.location.reload(), 5000);
                     return;
