@@ -341,6 +341,39 @@ pre {
   display: grid;
   gap: 10px;
 }
+.audit-list {
+  display: grid;
+  gap: 10px;
+}
+.audit-entry {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(9, 16, 31, 0.75);
+}
+.audit-entry time {
+  display: block;
+  color: var(--muted);
+  font-size: .85rem;
+  margin-bottom: 6px;
+}
+.audit-entry strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.compact-summary {
+  margin-bottom: 12px;
+}
+.compact-summary .summary-item {
+  padding: 10px;
+}
+.log-panel pre {
+  min-height: 420px;
+  max-height: 620px;
+}
+.audit-panel {
+  min-height: 100%;
+}
 
 .formatted-row {
   display: flex;

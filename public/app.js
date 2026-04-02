@@ -183,6 +183,36 @@ const Renderers = {
     target.innerHTML = entries.map(([key, val]) => `<div class="formatted-row"><strong>${key}</strong><span>${typeof val === 'string' ? val : JSON.stringify(val)}</span></div>`).join('');
   },
 
+  renderAuditEntries(entries = []) {
+    const target = document.getElementById('auditInfo');
+    if (!target) return;
+    if (!entries.length) {
+      target.innerHTML = '<div class="summary-item"><strong>Keine Audit-Einträge</strong></div>';
+      return;
+    }
+    target.innerHTML = entries.map((entry) => {
+      const raw = String(entry || '');
+      const match = raw.match(/^\[(.*?)\]\s+(.*)$/);
+      const timestamp = match ? match[1] : 'Zeit unbekannt';
+      const body = match ? match[2] : raw;
+      return `<div class="audit-entry"><time>${timestamp}</time><strong>${body}</strong></div>`;
+    }).join('');
+  },
+
+  renderLogSummary(logText = '') {
+    const target = document.getElementById('logsSummary');
+    if (!target) return;
+    const lines = String(logText || '').split(/\r?\n/).filter(Boolean);
+    const lastLine = lines.at(-1) || 'Keine Logs vorhanden';
+    const warnings = lines.filter((line) => /warn|warning|fatal|error/i.test(line)).length;
+    const items = [
+      { title: 'Zeilen', text: String(lines.length) },
+      { title: 'Warnungen/Fehler', text: String(warnings) },
+      { title: 'Letzte Zeile', text: lastLine.slice(0, 140) }
+    ];
+    target.innerHTML = items.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
+  },
+
   renderOverviewSummary(status = {}, metrics = {}, versions = {}) {
     const target = document.getElementById('overviewSummary');
     if (!target) return;
@@ -332,6 +362,7 @@ const App = {
       Renderers.renderPlayers(data.players || []);
       Renderers.renderBackups(data.backups || []);
       Renderers.renderAccessHint();
+      Renderers.renderLogSummary(data.logs || '');
       document.getElementById('logs').textContent = data.logs || '(leer)';
       document.getElementById('settingsEditor').value = JSON.stringify(data.settings || {}, null, 2);
       document.getElementById('autoAsaUpdateInput').checked = !!data.settings?.autoAsaUpdate;
@@ -344,7 +375,7 @@ const App = {
     if (versionsResult.status === 'fulfilled') Renderers.renderKeyValueBlock('versionInfo', versionsResult.value);
     if (tasksResult.status === 'fulfilled') document.getElementById('tasksEditor').value = JSON.stringify(tasksResult.value.tasks || [], null, 2);
     if (usersResult.status === 'fulfilled') Renderers.renderKeyValueBlock('usersInfo', usersResult.value.users || []);
-    if (auditResult.status === 'fulfilled') Renderers.renderKeyValueBlock('auditInfo', auditResult.value.entries || []);
+    if (auditResult.status === 'fulfilled') Renderers.renderAuditEntries(auditResult.value.entries || []);
 
     if (panelEnvResult.status === 'fulfilled') {
       document.getElementById('panelLanInput').checked = !!panelEnvResult.value.lanEnabled;
