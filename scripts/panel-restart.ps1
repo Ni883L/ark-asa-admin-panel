@@ -36,6 +36,22 @@ function Resolve-NodePath {
   throw 'Node.js (node.exe) wurde nicht gefunden.'
 }
 
+function Get-PanelProcesses([int]$PortNumber) {
+  $connections = Get-NetTCPConnection -LocalPort $PortNumber -State Listen -ErrorAction SilentlyContinue
+  $processIds = @($connections | Select-Object -ExpandProperty OwningProcess -Unique)
+  foreach ($pid in $processIds) {
+    $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
+    if ($proc) { $proc }
+  }
+}
+
+function Stop-PanelProcesses([int]$PortNumber) {
+  $processes = Get-PanelProcesses -PortNumber $PortNumber
+  foreach ($proc in $processes) {
+    try { Stop-Process -Id $proc.Id -Force -ErrorAction Stop } catch {}
+  }
+}
+
 function Start-DetachedNode([string]$WorkingDirectory) {
   $nodePath = Resolve-NodePath
   $process = Start-Process -FilePath $nodePath -ArgumentList 'src/server.js' -WorkingDirectory $WorkingDirectory -WindowStyle Hidden -PassThru
@@ -45,8 +61,10 @@ function Start-DetachedNode([string]$WorkingDirectory) {
 $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($task) {
   try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue | Out-Null } catch {}
+  Stop-PanelProcesses -PortNumber $Port
   Start-ScheduledTask -TaskName $TaskName
 } else {
+  Stop-PanelProcesses -PortNumber $Port
   Start-DetachedNode -WorkingDirectory $InstallPath | Out-Null
 }
 
