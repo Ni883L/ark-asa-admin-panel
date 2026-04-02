@@ -193,7 +193,7 @@
               <div class="section-header">
                 <div>
                   <p class="eyebrow">Backups</p>
-                  <h3>Sicherungen & Restore</h3>
+                  <h3>Sicherungen, Download & Import</h3>
                 </div>
               </div>
               <div class="content-grid two-col">
@@ -206,14 +206,20 @@
                 <div class="card backup-info-card">
                   <div class="section-header compact-header">
                     <div>
-                      <p class="eyebrow">Restore</p>
-                      <h4>Hinweise</h4>
+                      <p class="eyebrow">Import / Export</p>
+                      <h4>Savegames & ZIP</h4>
                     </div>
                   </div>
                   <div class="summary-stack">
-                    <div class="summary-item"><strong>Vor Restore</strong><div>Vor dem Restore wird automatisch ein Pre-Restore-Backup angelegt.</div></div>
-                    <div class="summary-item"><strong>Erlaubte Dateien</strong><div>Nur valide ZIP-Backups aus dem Backup-Ordner werden akzeptiert.</div></div>
-                    <div class="summary-item"><strong>Empfehlung</strong><div>Restore nur durchführen, wenn der Server gestoppt ist.</div></div>
+                    <div class="summary-item"><strong>Backup-Download</strong><div>Backups sollen direkt als ZIP heruntergeladen werden können.</div></div>
+                    <div class="summary-item"><strong>Savegame-Import</strong><div>Eigene Savegame-ZIPs hochladen und mit leichter Prüfung importieren.</div></div>
+                    <div class="summary-item"><strong>Prüfung</strong><div>Import nur mit unterstützten ZIP-Dateien und plausiblen Inhalten.</div></div>
+                  </div>
+                  <div class="settings-form">
+                    <label>Savegame/Backup ZIP hochladen<input id="backupUploadInput" type="file" accept=".zip" /></label>
+                    <div class="actions wrap-actions">
+                      <button id="uploadBackupBtn" type="button">ZIP importieren</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -367,7 +373,7 @@
                       <h4>Panel-Aktivitäten</h4>
                     </div>
                   </div>
-                  <div id="auditInfo" class="audit-list"></div>
+                  <div id="auditInfoSecondary" class="audit-list"></div>
                 </div>
               </div>
             </section>
