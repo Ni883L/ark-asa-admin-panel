@@ -97,10 +97,10 @@ if ($lastStart) {
 }
 $lowerLog = ($logTail -join "`n").ToLowerInvariant()
 $lowerCurrentRunLog = ($recentLogLines -join "`n").ToLowerInvariant()
-if ($lowerLog -match 'crash|fatal|access violation') {
+if ($lowerLog -match 'unhandled exception|fatal error!|fatal error:|access violation') {
   $crashDetected = 'true'
 }
-if ($lowerCurrentRunLog -match 'crash|fatal|access violation') {
+if ($lowerCurrentRunLog -match 'unhandled exception|fatal error!|fatal error:|access violation') {
   $currentRunCrashDetected = 'true'
 }
 if ($lowerLog -match 'the island|scorchedearth|aberration|extinction|forbiddenreach|thecenter|astraeos|bobsm') {
