@@ -74,7 +74,11 @@ function Get-RecentLogTail {
 $proc = Get-ServerProcess -PathHint $exePath
 if ($proc) {
   $status = 'running'
-  $lastStart = $proc.StartTime.ToString('s')
+  try {
+    $lastStart = $proc.StartTime.ToString('s')
+  } catch {
+    $lastStart = ''
+  }
 }
 
 if ($serviceName) {
