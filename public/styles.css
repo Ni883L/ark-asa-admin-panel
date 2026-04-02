@@ -408,6 +408,20 @@ code {
   justify-content: flex-end;
   margin-bottom: 12px;
 }
+.system-ops-card {
+  display: grid;
+  gap: 12px;
+}
+.system-badge {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(9, 16, 31, 0.75);
+}
+.system-badge strong {
+  display: block;
+  margin-bottom: 4px;
+}
 
 .backup-card {
   display: grid;

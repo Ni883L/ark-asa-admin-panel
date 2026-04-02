@@ -237,6 +237,30 @@ const Renderers = {
     target.innerHTML = items.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
   },
 
+  renderSystemSummary(panelEnv = {}, panelAutostart = {}, asaAutostart = {}) {
+    const target = document.getElementById('systemSummary');
+    if (!target) return;
+    const items = [
+      {
+        title: 'Panel-Zugriff',
+        text: panelEnv?.lanEnabled ? `LAN aktiv auf Port ${panelEnv.port || 3000}` : `Nur lokal auf ${panelEnv.host || '127.0.0.1'}`
+      },
+      {
+        title: 'HTTPS',
+        text: panelEnv?.httpsEnabled ? 'Aktiviert' : 'Deaktiviert'
+      },
+      {
+        title: 'Panel-Autostart',
+        text: panelAutostart?.result?.enabled ? 'Aktiv' : 'Nicht aktiv'
+      },
+      {
+        title: 'ASA-Autostart',
+        text: asaAutostart?.result?.autoStartEnabled ? 'Aktiv' : 'Nicht aktiv'
+      }
+    ];
+    target.innerHTML = items.map((item) => `<div class="system-badge"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
+  },
+
   renderAccessHint() {
     const hint = document.getElementById('accessHint');
     if (!hint || !bootstrapState?.appBinding) return;
@@ -388,6 +412,12 @@ const App = {
 
     if (panelAutostartResult.status === 'fulfilled') document.getElementById('panelAutostartInput').checked = !!panelAutostartResult.value.result?.enabled;
     if (asaAutostartResult.status === 'fulfilled') document.getElementById('asaAutostartInput').checked = !!asaAutostartResult.value.result?.autoStartEnabled;
+
+    Renderers.renderSystemSummary(
+      panelEnvResult.status === 'fulfilled' ? panelEnvResult.value : {},
+      panelAutostartResult.status === 'fulfilled' ? panelAutostartResult.value : {},
+      asaAutostartResult.status === 'fulfilled' ? asaAutostartResult.value : {}
+    );
 
     try {
       await App.loadConfig(currentConfig);

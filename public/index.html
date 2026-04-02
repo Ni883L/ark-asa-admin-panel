@@ -316,8 +316,14 @@
                 </div>
               </div>
               <div class="content-grid three-col">
-                <div class="card">
-                  <h4>Panel-Betrieb</h4>
+                <div class="card system-ops-card">
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Panel-Betrieb</p>
+                      <h4>Dienst & Firewall</h4>
+                    </div>
+                  </div>
+                  <div id="systemSummary" class="summary-stack compact-summary"></div>
                   <div class="actions stack-actions">
                     <button id="restartPanelServiceBtn" class="warn">Webdienst neu starten</button>
                     <button id="checkFirewallBtn" type="button">Firewall prüfen</button>
@@ -325,12 +331,22 @@
                   </div>
                 </div>
                 <div class="card formatted-card">
-                  <h4>Benutzer</h4>
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Benutzer</p>
+                      <h4>Zugänge</h4>
+                    </div>
+                  </div>
                   <div id="usersInfo" class="formatted-output"></div>
                 </div>
-                <div class="card formatted-card">
-                  <h4>Audit-Log</h4>
-                  <div id="auditInfo" class="formatted-output"></div>
+                <div class="card audit-panel formatted-card">
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Audit</p>
+                      <h4>Panel-Aktivitäten</h4>
+                    </div>
+                  </div>
+                  <div id="auditInfo" class="audit-list"></div>
                 </div>
               </div>
               <div class="content-grid two-col">
