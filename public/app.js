@@ -195,6 +195,18 @@ const Renderers = {
     target.innerHTML = items.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
   },
 
+  renderServerSummary(status = {}, metrics = {}, versions = {}) {
+    const target = document.getElementById('serverSummary');
+    if (!target) return;
+    const items = [
+      { title: 'Readiness', text: metrics.readiness?.detail || metrics.readiness?.label || 'Unbekannt' },
+      { title: 'Version', text: versions?.server?.version || '-' },
+      { title: 'Build', text: versions?.server?.buildId || '-' },
+      { title: 'Letzter Start', text: metrics.lastStart || '-' }
+    ];
+    target.innerHTML = items.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
+  },
+
   renderAccessHint() {
     const hint = document.getElementById('accessHint');
     if (!hint || !bootstrapState?.appBinding) return;
@@ -316,6 +328,7 @@ const App = {
       Renderers.renderReadiness(data.metrics || {});
       Renderers.renderStats(data.status, data.metrics, versions);
       Renderers.renderOverviewSummary(data.status || {}, data.metrics || {}, versions || {});
+      Renderers.renderServerSummary(data.status || {}, data.metrics || {}, versions || {});
       Renderers.renderPlayers(data.players || []);
       Renderers.renderBackups(data.backups || []);
       Renderers.renderAccessHint();

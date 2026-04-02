@@ -198,6 +198,10 @@ body {
   gap: 18px;
 }
 
+.content-grid.one-col {
+  grid-template-columns: 1fr;
+}
+
 .content-grid.two-col {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -221,7 +225,9 @@ body {
   box-shadow: 0 12px 30px rgba(0,0,0,.28);
 }
 
-.overview-summary-card {
+.overview-summary-card,
+.server-summary-card,
+.backup-info-card {
   background: linear-gradient(180deg, #162347 0%, #0f1833 100%);
 }
 
@@ -455,6 +461,7 @@ code {
     height: auto;
   }
 
+  .content-grid.one-col,
   .content-grid.two-col,
   .content-grid.three-col {
     grid-template-columns: 1fr;

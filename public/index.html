@@ -131,7 +131,7 @@
                 </div>
               </div>
 
-              <div class="content-grid two-col">
+              <div class="content-grid three-col">
                 <div class="card">
                   <div class="section-header compact-header">
                     <div>
@@ -165,6 +165,16 @@
                     <button data-action="panel-update">Panel-Update</button>
                   </div>
                 </div>
+
+                <div class="card server-summary-card">
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Serverstatus</p>
+                      <h4>Auf einen Blick</h4>
+                    </div>
+                  </div>
+                  <div id="serverSummary" class="summary-stack"></div>
+                </div>
               </div>
 
               <div class="content-grid two-col">
@@ -186,11 +196,26 @@
                   <h3>Sicherungen & Restore</h3>
                 </div>
               </div>
-              <div class="card emphasis-card">
-                <div class="backup-toolbar">
-                  <button data-action="backup">Backup jetzt erstellen</button>
+              <div class="content-grid two-col">
+                <div class="card emphasis-card">
+                  <div class="backup-toolbar">
+                    <button data-action="backup">Backup jetzt erstellen</button>
+                  </div>
+                  <div id="backups"></div>
                 </div>
-                <div id="backups"></div>
+                <div class="card backup-info-card">
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Restore</p>
+                      <h4>Hinweise</h4>
+                    </div>
+                  </div>
+                  <div class="summary-stack">
+                    <div class="summary-item"><strong>Vor Restore</strong><div>Vor dem Restore wird automatisch ein Pre-Restore-Backup angelegt.</div></div>
+                    <div class="summary-item"><strong>Erlaubte Dateien</strong><div>Nur valide ZIP-Backups aus dem Backup-Ordner werden akzeptiert.</div></div>
+                    <div class="summary-item"><strong>Empfehlung</strong><div>Restore nur durchführen, wenn der Server gestoppt ist.</div></div>
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -290,7 +315,7 @@
                   <h3>Firewall, Logs & Audit</h3>
                 </div>
               </div>
-              <div class="content-grid two-col">
+              <div class="content-grid three-col">
                 <div class="card">
                   <h4>Panel-Betrieb</h4>
                   <div class="actions stack-actions">
@@ -303,15 +328,15 @@
                   <h4>Benutzer</h4>
                   <div id="usersInfo" class="formatted-output"></div>
                 </div>
-              </div>
-              <div class="content-grid two-col">
-                <div class="card">
-                  <h4>Logs</h4>
-                  <pre id="logs"></pre>
-                </div>
                 <div class="card formatted-card">
                   <h4>Audit-Log</h4>
                   <div id="auditInfo" class="formatted-output"></div>
+                </div>
+              </div>
+              <div class="content-grid one-col">
+                <div class="card">
+                  <h4>Logs</h4>
+                  <pre id="logs"></pre>
                 </div>
               </div>
             </section>
