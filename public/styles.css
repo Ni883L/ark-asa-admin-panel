@@ -103,10 +103,10 @@ body {
 
 .topbar {
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: 20px;
   background: rgba(10, 15, 34, 0.82);
   backdrop-filter: blur(10px);
-  padding: 18px 20px;
+  padding: 12px 16px;
 }
 
 .topbar-redesign {
@@ -127,7 +127,7 @@ body {
 
 .topbar-main h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
 }
 
 .topbar-actions,
@@ -136,7 +136,7 @@ body {
 .wrap-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .stack-actions {
@@ -146,15 +146,15 @@ body {
 
 .hero-status-grid {
   display: grid;
-  gap: 12px;
-  min-width: min(420px, 100%);
+  gap: 8px;
+  min-width: min(360px, 100%);
 }
 
 .hero-meta-card {
   border: 1px solid var(--border);
   background: rgba(9, 16, 31, 0.9);
-  border-radius: 16px;
-  padding: 12px 14px;
+  border-radius: 14px;
+  padding: 10px 12px;
 }
 
 .hero-label {
@@ -215,8 +215,8 @@ body {
 .card {
   background: linear-gradient(180deg, #141f44 0%, #101734 100%);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 18px;
+  border-radius: 18px;
+  padding: 14px;
   box-shadow: 0 10px 25px rgba(0,0,0,.22);
 }
 
@@ -250,15 +250,16 @@ body {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
 }
 
 .stat {
   background: var(--panel-soft);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: .92rem;
 }
 
 .settings-form {
@@ -292,21 +293,22 @@ label { display: block; margin: 10px 0; }
 input,
 textarea {
   width: 100%;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid #34457d;
   background: #0a1025;
   color: var(--text);
-  padding: 12px;
+  padding: 10px;
 }
 
 button {
   border: 0;
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--brand);
   color: white;
-  padding: 10px 14px;
+  padding: 8px 12px;
   cursor: pointer;
   font-weight: 700;
+  font-size: .92rem;
   transition: transform .05s ease, filter .2s ease;
 }
 
@@ -478,11 +480,12 @@ code {
 .feedback.info { border-color: #1d4ed8; background: #1e3a8a; color: #dbeafe; }
 
 .readiness-banner {
-  padding: 14px 16px;
-  border-radius: 16px;
+  padding: 10px 12px;
+  border-radius: 14px;
   border: 1px solid var(--border);
   font-weight: 700;
-  min-width: 280px;
+  min-width: 240px;
+  font-size: .95rem;
 }
 .readiness-banner small { display: block; font-weight: 500; opacity: 0.92; margin-top: 4px; }
 .readiness-banner.ready { background: #052e16; border-color: #166534; color: #dcfce7; }
