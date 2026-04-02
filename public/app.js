@@ -261,13 +261,20 @@ const Renderers = {
     target.innerHTML = items.map((item) => `<div class="system-badge"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
   },
 
-  renderAccessHint() {
+  renderAccessHint(panelEnv = {}) {
     const hint = document.getElementById('accessHint');
     if (!hint || !bootstrapState?.appBinding) return;
-    const { host, port, httpsEnabled } = bootstrapState.appBinding;
-    const scheme = httpsEnabled ? 'https' : 'http';
+    const host = panelEnv.host || bootstrapState.appBinding.host;
+    const port = panelEnv.port || bootstrapState.appBinding.port;
+    const httpsEnabled = !!panelEnv.httpsEnabled;
+    const certReady = !!panelEnv.httpsCertPath && !!panelEnv.httpsKeyPath;
+    const scheme = httpsEnabled && certReady ? 'https' : 'http';
     const ips = bootstrapState.localIps || [];
     if (host === '0.0.0.0' || host === '::') {
+      if (httpsEnabled && !certReady) {
+        hint.textContent = 'HTTPS ist aktiviert, aber Zertifikat/Key fehlen oder sind ungültig — LAN-Zugriff aktuell nur per HTTP erwartbar.';
+        return;
+      }
       hint.textContent = ips.length ? `LAN-Zugriff aktiv: ${ips.map((ip) => `${scheme}://${ip}:${port}`).join(' | ')}` : `LAN-Zugriff aktiv: ${scheme}://<server-ip>:${port}`;
     } else {
       hint.textContent = `LAN-Zugriff ist aktuell nicht aktiv (HOST=${host}).`;
@@ -385,7 +392,6 @@ const App = {
       Renderers.renderServerSummary(data.status || {}, data.metrics || {}, versions || {});
       Renderers.renderPlayers(data.players || []);
       Renderers.renderBackups(data.backups || []);
-      Renderers.renderAccessHint();
       Renderers.renderLogSummary(data.logs || '');
       document.getElementById('logs').textContent = data.logs || '(leer)';
       document.getElementById('settingsEditor').value = JSON.stringify(data.settings || {}, null, 2);
@@ -413,6 +419,7 @@ const App = {
     if (panelAutostartResult.status === 'fulfilled') document.getElementById('panelAutostartInput').checked = !!panelAutostartResult.value.result?.enabled;
     if (asaAutostartResult.status === 'fulfilled') document.getElementById('asaAutostartInput').checked = !!asaAutostartResult.value.result?.autoStartEnabled;
 
+    Renderers.renderAccessHint(panelEnvResult.status === 'fulfilled' ? panelEnvResult.value : {});
     Renderers.renderSystemSummary(
       panelEnvResult.status === 'fulfilled' ? panelEnvResult.value : {},
       panelAutostartResult.status === 'fulfilled' ? panelAutostartResult.value : {},
