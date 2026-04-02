@@ -636,7 +636,16 @@ const App = {
       try {
         const enabled = document.getElementById('panelAutostartInput').checked;
         const asaEnabled = document.getElementById('asaAutostartInput').checked;
-        await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
+        try {
+          await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
+        } catch (error) {
+          if (String(error.message || '').includes('Netzwerkfehler: API nicht erreichbar')) {
+            UI.setFeedback('Autostart wird angewendet. Verbindung wird neu aufgebaut...', 'info');
+            setTimeout(() => window.location.reload(), 5000);
+            return;
+          }
+          throw error;
+        }
         await Api.request('/api/actions/asa-autostart', { method: 'POST', body: JSON.stringify({ enabled: asaEnabled, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
         UI.setFeedback('Autostart aktualisiert.', 'success');
         await App.refreshDashboard();
