@@ -176,15 +176,31 @@ const Renderers = {
       target.innerHTML = '<div class="summary-item"><strong>Keine Daten</strong></div>';
       return;
     }
-    const entries = Array.isArray(value)
-      ? value.map((entry, index) => [`Eintrag ${index + 1}`, entry])
-      : Object.entries(value);
+
+    const formatScalar = (val) => {
+      if (val === null || val === undefined || val === '') return '-';
+      return typeof val === 'string' ? val : JSON.stringify(val);
+    };
+
+    const renderArray = (arr) => {
+      if (!arr.length) return '<span class="hint">leer</span>';
+      return `<ul class="formatted-list">${arr.map((item) => `<li>${formatScalar(item)}</li>`).join('')}</ul>`;
+    };
+
+    const renderNested = (obj) => {
+      return `<div class="formatted-nested">${Object.entries(obj)
+        .filter(([nestedKey]) => !['source', 'rawVersion'].includes(nestedKey))
+        .map(([nestedKey, nestedVal]) => `<div class="formatted-nested-row"><strong>${nestedKey}</strong><span>${Array.isArray(nestedVal) ? `${nestedVal.length} Einträge` : formatScalar(nestedVal)}</span></div>`)
+        .join('')}</div>`;
+    };
+
+    const entries = Object.entries(value).filter(([key]) => key !== 'source' && key !== 'rawVersion');
     target.innerHTML = entries.map(([key, val]) => {
       const rendered = Array.isArray(val)
-        ? (val.length ? `<ul class="formatted-list">${val.map((item) => `<li>${typeof item === 'string' ? item : JSON.stringify(item)}</li>`).join('')}</ul>` : '<span class="hint">leer</span>')
+        ? renderArray(val)
         : (val && typeof val === 'object')
-          ? `<div class="formatted-nested">${Object.entries(val).map(([nestedKey, nestedVal]) => `<div class="formatted-nested-row"><strong>${nestedKey}</strong><span>${typeof nestedVal === 'string' ? nestedVal : JSON.stringify(nestedVal)}</span></div>`).join('')}</div>`
-          : `<span>${typeof val === 'string' ? val : JSON.stringify(val)}</span>`;
+          ? renderNested(val)
+          : `<span>${formatScalar(val)}</span>`;
       return `<div class="formatted-row"><strong>${key}</strong>${rendered}</div>`;
     }).join('');
   },
