@@ -634,7 +634,7 @@ const App = {
       if (Preferences.shouldRequirePassword() && !currentPassword) return;
       try {
         await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
-        UI.setFeedback('Panel-Dienst neu registriert.', 'success');
+        UI.setFeedback('Panel-Dienst neu registriert oder Admin-Registrierung angestoßen.', 'success');
         await App.refreshDashboard();
       } catch (error) {
         UI.setFeedback(error.message, 'error');
