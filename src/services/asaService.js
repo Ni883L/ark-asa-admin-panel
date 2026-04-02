@@ -203,10 +203,9 @@ async function selfUpdate() {
 }
 
 async function updateAndRestartPanel() {
-  const updateResult = await selfUpdate();
-  const restartResult = await powershell.run('panel-restart.ps1', ['-Port', String(defaults.app.port)]);
-  logger.audit('system', 'panel-update-restart', { port: defaults.app.port });
-  return { updateResult, restartResult, stdout: [updateResult.stdout, restartResult.stdout].filter(Boolean).join('\n'), stderr: [updateResult.stderr, restartResult.stderr].filter(Boolean).join('\n') };
+  const result = await powershell.run('panel-update-launcher.ps1', ['-InstallPath', process.cwd(), '-Branch', 'main']);
+  logger.audit('system', 'panel-update-launcher', { port: defaults.app.port });
+  return result;
 }
 
 async function restartPanelService() {
