@@ -238,7 +238,9 @@ const Renderers = {
       { title: 'Readiness', text: metrics.readiness?.detail || metrics.readiness?.label || 'Unbekannt' },
       { title: 'Version', text: versions?.server?.version || '-' },
       { title: 'Build', text: versions?.server?.buildId || '-' },
-      { title: 'Letzter Start', text: metrics.lastStart || '-' }
+      { title: 'Letzter Start', text: metrics.lastStart || '-' },
+      { title: 'Ports', text: metrics.ports || '-' },
+      { title: 'Karte', text: metrics.loadedMap || metrics.mapName || '-' }
     ];
     target.innerHTML = items.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
   },
