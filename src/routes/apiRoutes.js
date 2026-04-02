@@ -39,7 +39,7 @@ function readPanelEnv() {
 function writePanelEnv(updates = {}) {
   const existing = readPanelEnv();
   const merged = { ...existing, ...updates };
-  const order = ['HOST', 'PORT', 'HTTPS_ENABLED'];
+  const order = ['HOST', 'PORT', 'HTTPS_ENABLED', 'HTTPS_CERT_PATH', 'HTTPS_KEY_PATH'];
   const keys = Array.from(new Set([...order, ...Object.keys(merged)]));
   const content = keys
     .filter((key) => merged[key] !== undefined && merged[key] !== null && String(merged[key]).length > 0)
@@ -296,24 +296,39 @@ router.post('/settings', handleRoute(async (req, res) => {
 
 router.get('/panel-env', handleRoute(async (_req, res) => {
   const env = readPanelEnv();
+  const host = env.HOST || defaults.app.host;
+  const httpsEnabled = ['1', 'true', 'yes', 'on'].includes(String(env.HTTPS_ENABLED || defaults.app.httpsEnabled).toLowerCase());
+  const certPath = env.HTTPS_CERT_PATH || defaults.app.httpsCertPath || '';
+  const keyPath = env.HTTPS_KEY_PATH || defaults.app.httpsKeyPath || '';
   res.json({
-    host: env.HOST || defaults.app.host,
+    host,
     port: Number(env.PORT || defaults.app.port),
-    httpsEnabled: ['1', 'true', 'yes', 'on'].includes(String(env.HTTPS_ENABLED || defaults.app.httpsEnabled).toLowerCase())
+    httpsEnabled,
+    httpsCertPath: certPath,
+    httpsKeyPath: keyPath,
+    lanEnabled: host === '0.0.0.0' || host === '::'
   });
 }));
 
 router.post('/panel-env', handleRoute(async (req, res) => {
   authService.requireRole(req, ['admin']);
-  const host = String(req.body.host || '127.0.0.1').trim();
+  const lanEnabled = !!req.body.lanEnabled;
+  const host = String(req.body.host || (lanEnabled ? '0.0.0.0' : '127.0.0.1')).trim();
   const port = Number(req.body.port || 3000);
   const httpsEnabled = !!req.body.httpsEnabled;
+  const httpsCertPath = String(req.body.httpsCertPath || '').trim();
+  const httpsKeyPath = String(req.body.httpsKeyPath || '').trim();
   if (!host) throw new ValidationError('HOST darf nicht leer sein.', 'PANEL_HOST_REQUIRED');
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new ValidationError('PORT muss zwischen 1 und 65535 liegen.', 'PANEL_PORT_INVALID');
+  if (httpsEnabled && (!httpsCertPath || !httpsKeyPath)) {
+    throw new ValidationError('Für HTTPS werden Zertifikat- und Key-Pfad benötigt.', 'HTTPS_CERT_KEY_REQUIRED');
+  }
   writePanelEnv({
-    HOST: host,
+    HOST: lanEnabled ? '0.0.0.0' : host,
     PORT: String(port),
-    HTTPS_ENABLED: httpsEnabled ? 'true' : 'false'
+    HTTPS_ENABLED: httpsEnabled ? 'true' : 'false',
+    HTTPS_CERT_PATH: httpsEnabled ? httpsCertPath : '',
+    HTTPS_KEY_PATH: httpsEnabled ? httpsKeyPath : ''
   });
   res.json({ ok: true, message: 'Panel-Variablen gespeichert. Neustart erforderlich.' });
 }));

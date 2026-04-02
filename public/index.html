@@ -140,9 +140,12 @@
             <h2>Einstellungen</h2>
             <p class="section-hint">Panel-Einstellungen als JSON verwalten (z. B. autoAsaUpdate).</p>
             <div class="settings-form">
+              <label class="checkbox-row"><input id="panelLanInput" type="checkbox" /> LAN-Zugriff aktivieren (setzt HOST auf 0.0.0.0)</label>
               <label>Panel Host (HOST)<input id="panelHostInput" placeholder="127.0.0.1 oder 0.0.0.0" /></label>
               <label>Panel Port (PORT)<input id="panelPortInput" type="number" min="1" max="65535" value="3000" /></label>
-              <label class="checkbox-row"><input id="panelHttpsInput" type="checkbox" /> HTTPS aktivieren (HTTPS_ENABLED)</label>
+              <label class="checkbox-row"><input id="panelHttpsInput" type="checkbox" /> HTTPS aktivieren</label>
+              <label>HTTPS Zertifikat (HTTPS_CERT_PATH)<input id="panelHttpsCertInput" placeholder="C:\\certs\\panel.crt" /></label>
+              <label>HTTPS Key (HTTPS_KEY_PATH)<input id="panelHttpsKeyInput" placeholder="C:\\certs\\panel.key" /></label>
               <label class="checkbox-row"><input id="autoAsaUpdateInput" type="checkbox" /> ASA-Updates automatisch installieren</label>
               <label class="checkbox-row"><input id="panelAutostartInput" type="checkbox" /> Panel-Dienst Autostart (Windows Task)</label>
               <label class="checkbox-row"><input id="asaAutostartInput" type="checkbox" /> ARK-Server-Dienst Auto-Start (Windows Service)</label>

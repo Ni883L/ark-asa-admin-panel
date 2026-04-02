@@ -294,9 +294,12 @@ async function refreshDashboard() {
   if (auditResult.status === 'fulfilled') document.getElementById('auditInfo').textContent = (auditResult.value.entries || []).join('\n');
 
   if (panelEnvResult.status === 'fulfilled') {
+    document.getElementById('panelLanInput').checked = !!panelEnvResult.value.lanEnabled;
     document.getElementById('panelHostInput').value = panelEnvResult.value.host || '127.0.0.1';
     document.getElementById('panelPortInput').value = panelEnvResult.value.port || 3000;
     document.getElementById('panelHttpsInput').checked = !!panelEnvResult.value.httpsEnabled;
+    document.getElementById('panelHttpsCertInput').value = panelEnvResult.value.httpsCertPath || '';
+    document.getElementById('panelHttpsKeyInput').value = panelEnvResult.value.httpsKeyPath || '';
   }
 
   if (panelAutostartResult.status === 'fulfilled') document.getElementById('panelAutostartInput').checked = !!panelAutostartResult.value.result?.enabled;
@@ -396,6 +399,12 @@ function bindEvents() {
     }
   });
 
+  document.getElementById('panelLanInput')?.addEventListener('change', (event) => {
+    if (event.target.checked) {
+      document.getElementById('panelHostInput').value = '0.0.0.0';
+    }
+  });
+
   document.getElementById('toggleBannerBtn')?.addEventListener('click', () => {
     const topbar = document.querySelector('.topbar');
     if (!topbar) return;
@@ -424,13 +433,18 @@ function bindEvents() {
 
   document.getElementById('savePanelOptionsBtn')?.addEventListener('click', async () => {
     try {
+      const lanEnabled = document.getElementById('panelLanInput').checked;
       const host = document.getElementById('panelHostInput').value.trim();
       const port = Number(document.getElementById('panelPortInput').value || 3000);
       const httpsEnabled = document.getElementById('panelHttpsInput').checked;
+      const httpsCertPath = document.getElementById('panelHttpsCertInput').value.trim();
+      const httpsKeyPath = document.getElementById('panelHttpsKeyInput').value.trim();
       const autoAsaUpdate = document.getElementById('autoAsaUpdateInput').checked;
-      await api('/api/panel-env', { method: 'POST', body: JSON.stringify({ host, port, httpsEnabled }) });
+      await api('/api/panel-env', { method: 'POST', body: JSON.stringify({ host, port, lanEnabled, httpsEnabled, httpsCertPath, httpsKeyPath }) });
       await api('/api/settings', { method: 'POST', body: JSON.stringify({ autoAsaUpdate }) });
-      setFeedback('Panel-Optionen gespeichert.', 'success');
+      setFeedback(lanEnabled
+        ? (httpsEnabled ? 'LAN + HTTPS gespeichert. Zertifikat/Key prüfen und Panel neu starten.' : 'LAN-Zugriff gespeichert. Panel neu starten, dann per http://<server-ip>:PORT erreichbar.')
+        : 'Panel-Optionen gespeichert.', 'success');
       await refreshDashboard();
     } catch (error) {
       setFeedback(error.message, 'error');
