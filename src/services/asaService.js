@@ -33,11 +33,11 @@ function resolveAsaExePath() {
 
 function getProfileCommand(profile) {
   if (!profile) return '';
-  if (profile.rawCommandLine) return profile.rawCommandLine;
   const args = [];
   args.push(`${profile.map}?listen?SessionName=${profile.sessionName}`);
   args.push(`Port=${profile.ports.game}`);
   args.push(`QueryPort=${profile.ports.query}`);
+  if (profile.ports?.rcon) args.push(`RCONPort=${profile.ports.rcon}`);
   if (profile.serverPassword) args.push(`ServerPassword=${profile.serverPassword}`);
   if (profile.adminPassword) args.push(`ServerAdminPassword=${profile.adminPassword}`);
   if (profile.clusterId) args.push(`ClusterId=${profile.clusterId}`);
@@ -75,18 +75,22 @@ function saveProfiles(nextData) {
     throw new Error('Mindestens ein Serverprofil ist erforderlich.');
   }
 
-  nextData.profiles = nextData.profiles.map((profile) => ({
-    ...profile,
-    id: requireString(profile.id, 'Profil-ID'),
-    map: requireString(profile.map, 'Map'),
-    name: sanitizeName(profile.name, 'Profilname'),
-    sessionName: sanitizeName(profile.sessionName, 'SessionName'),
-    ports: {
-      game: sanitizePort(profile.ports.game, 'Game-Port'),
-      query: sanitizePort(profile.ports.query, 'Query-Port'),
-      rcon: sanitizePort(profile.ports.rcon, 'RCON-Port')
-    }
-  }));
+  nextData.profiles = nextData.profiles.map((profile) => {
+    const normalized = {
+      ...profile,
+      rawCommandLine: '',
+      id: requireString(profile.id, 'Profil-ID'),
+      map: requireString(profile.map, 'Map'),
+      name: sanitizeName(profile.name, 'Profilname'),
+      sessionName: sanitizeName(profile.sessionName, 'SessionName'),
+      ports: {
+        game: sanitizePort(profile.ports.game, 'Game-Port'),
+        query: sanitizePort(profile.ports.query, 'Query-Port'),
+        rcon: sanitizePort(profile.ports.rcon, 'RCON-Port')
+      }
+    };
+    return normalized;
+  });
 
   store.saveProfiles(nextData);
   logger.audit('system', 'save-profiles', { count: nextData.profiles.length });
