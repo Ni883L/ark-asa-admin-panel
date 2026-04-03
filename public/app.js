@@ -217,12 +217,21 @@ const Renderers = {
       target.innerHTML = '<div class="summary-item"><strong>Keine Audit-Einträge</strong></div>';
       return;
     }
+
+    const prettifyAction = (text) => String(text || '')
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+
     target.innerHTML = entries.map((entry) => {
       const raw = String(entry || '');
-      const match = raw.match(/^\[(.*?)\]\s+(.*)$/);
-      const timestamp = match ? match[1] : 'Zeit unbekannt';
-      const body = match ? match[2] : raw;
-      return `<div class="audit-entry"><time>${timestamp}</time><strong>${body}</strong></div>`;
+      const timestampMatch = raw.match(/^\[(.*?)\]/);
+      const actorActionMatch = raw.match(/\]\s+([^\s]+)\s+([^\s]+)(?:\s+(.*))?$/);
+      const timestamp = timestampMatch ? timestampMatch[1] : 'Zeit unbekannt';
+      const actor = actorActionMatch ? actorActionMatch[1] : 'system';
+      const action = actorActionMatch ? prettifyAction(actorActionMatch[2]) : 'Unbekannte Aktion';
+      const details = actorActionMatch && actorActionMatch[3] ? actorActionMatch[3] : '';
+
+      return `<div class="audit-entry"><time>${timestamp}</time><strong>${action}</strong><div class="audit-meta">Ausgelöst von: ${actor}</div>${details ? `<div class="audit-details">${details}</div>` : ''}</div>`;
     }).join('');
   },
 
