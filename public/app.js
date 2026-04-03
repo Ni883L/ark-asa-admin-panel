@@ -143,8 +143,8 @@ const Renderers = {
       Serverstatus: status.status || metrics.status || 'unknown',
       Profil: status.activeProfile?.name || '-',
       'Spiel-Version': versions?.server?.version || versions?.server?.buildId || '-',
-      'CPU (System)': metrics.cpu || '-',
-      'RAM (System)': metrics.memory || '-',
+      CPU: metrics.cpu || '-',
+      RAM: metrics.memory || '-',
       Disk: metrics.disk || '-',
       Ports: metrics.ports || '-',
       'Letzter Start': metrics.lastStart || '-',
@@ -267,7 +267,6 @@ const Renderers = {
     const items = [
       { title: 'Readiness', text: metrics.readiness?.detail || metrics.readiness?.label || 'Unbekannt' },
       { title: 'Version', text: versions?.server?.version || '-' },
-      { title: 'Build', text: versions?.server?.buildId || '-' },
       { title: 'Letzter Start', text: metrics.lastStart || '-' },
       { title: 'Ports', text: metrics.ports || '-' },
       { title: 'Karte', text: metrics.loadedMap || metrics.mapName || '-' }
