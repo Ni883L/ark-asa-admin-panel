@@ -855,17 +855,7 @@ const App = {
                   throw error;
                 }
               } else if (action === 'asa-update') {
-                try {
-                  result = await Api.request(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(payload) });
-                } catch (error) {
-                  const message = String(error.message || '');
-                  if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
-                    UI.setFeedback('ASA-Update läuft. Verbindung wird neu aufgebaut...', 'info');
-                    setTimeout(() => window.location.reload(), 5000);
-                    return;
-                  }
-                  throw error;
-                }
+                result = await Api.request(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(payload) });
               } else {
                 result = await Api.request(`/api/actions/${action}`, { method: 'POST', body: JSON.stringify(payload) });
               }
