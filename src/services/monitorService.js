@@ -1,5 +1,6 @@
 const fs = require('fs');
 const defaults = require('../config/defaults');
+const store = require('./store');
 const powershell = require('./powershell');
 
 function clampLines(lines, fallback = 200, max = 2000) {
@@ -47,9 +48,14 @@ async function getMetrics() {
     parsed[key] = rest.join('=');
   }
   parsed.portChecks = String(parsed.portsRaw || '').split(',').filter(Boolean);
+  const profile = store.getActiveProfile();
+  if (profile?.ports) {
+    parsed.configuredPorts = `Game ${profile.ports.game} · Query ${profile.ports.query}${profile.ports.rcon ? ` · RCON ${profile.ports.rcon}` : ''}`;
+    parsed.configuredPortsRaw = JSON.stringify(profile.ports);
+  }
   const recentLog = getRecentLogs(300);
   parsed.readiness = deriveServerReadiness(parsed, recentLog);
-  parsed.displayPorts = parsed.configuredPorts || parsed.ports || 'unknown';
+  parsed.displayPorts = parsed.ports || parsed.configuredPorts || 'unknown';
   return parsed;
 }
 
