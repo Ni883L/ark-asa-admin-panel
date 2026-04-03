@@ -146,7 +146,7 @@ const Renderers = {
       CPU: metrics.cpu || '-',
       RAM: metrics.memory || '-',
       Disk: metrics.disk || '-',
-      Ports: metrics.ports || '-',
+      Ports: metrics.displayPorts || status.configuredPorts || metrics.ports || '-',
       'Letzter Start': metrics.lastStart || '-',
       Karte: metrics.loadedMap || metrics.mapName || '-',
       Crashs: metrics.crashDetected || 'unknown'
@@ -256,7 +256,7 @@ const Renderers = {
       { title: 'Server', text: metrics.readiness?.label || status.status || 'Unbekannt' },
       { title: 'Karte', text: metrics.loadedMap || metrics.mapName || 'Noch nicht erkannt' },
       { title: 'Spiel-Version', text: versions?.server?.version || 'Unbekannt' },
-      { title: 'Ports', text: metrics.ports || 'unknown' }
+      { title: 'Ports', text: metrics.displayPorts || status.configuredPorts || metrics.ports || 'unknown' }
     ];
     target.innerHTML = items.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
   },
@@ -268,7 +268,7 @@ const Renderers = {
       { title: 'Readiness', text: metrics.readiness?.detail || metrics.readiness?.label || 'Unbekannt' },
       { title: 'Version', text: versions?.server?.version || '-' },
       { title: 'Letzter Start', text: metrics.lastStart || '-' },
-      { title: 'Ports', text: metrics.ports || '-' },
+      { title: 'Ports', text: metrics.displayPorts || status.configuredPorts || metrics.ports || '-' },
       { title: 'Karte', text: metrics.loadedMap || metrics.mapName || '-' }
     ];
     target.innerHTML = items.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');

@@ -106,10 +106,15 @@ async function getStatus() {
     parsed[key] = rest.join('=');
   }
   const profile = store.getActiveProfile();
+  const profilePorts = profile?.ports
+    ? `Game ${profile.ports.game} · Query ${profile.ports.query}${profile.ports.rcon ? ` · RCON ${profile.ports.rcon}` : ''}`
+    : '';
   return {
     ...parsed,
     activeProfile: profile,
-    commandLine: profile ? getProfileCommand(profile) : ''
+    commandLine: profile ? getProfileCommand(profile) : '',
+    configuredPorts: profilePorts || parsed.configuredPorts || 'unknown',
+    configuredPortsRaw: profile?.ports ? JSON.stringify(profile.ports) : (parsed.configuredPortsRaw || '')
   };
 }
 

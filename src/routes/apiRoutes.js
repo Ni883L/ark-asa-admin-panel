@@ -100,6 +100,9 @@ router.post('/bootstrap', handleRoute(async (req, res) => {
 
 router.get('/dashboard', handleRoute(async (_req, res) => {
   const [status, metrics] = await Promise.all([asaService.getStatus(), monitorService.getMetrics()]);
+  metrics.configuredPorts = status.configuredPorts || metrics.configuredPorts || 'unknown';
+  metrics.configuredPortsRaw = status.configuredPortsRaw || metrics.configuredPortsRaw || '';
+  metrics.displayPorts = status.configuredPorts || metrics.displayPorts || metrics.ports || 'unknown';
   res.json({
     status,
     metrics,

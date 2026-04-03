@@ -49,6 +49,7 @@ async function getMetrics() {
   parsed.portChecks = String(parsed.portsRaw || '').split(',').filter(Boolean);
   const recentLog = getRecentLogs(300);
   parsed.readiness = deriveServerReadiness(parsed, recentLog);
+  parsed.displayPorts = parsed.configuredPorts || parsed.ports || 'unknown';
   return parsed;
 }
 
