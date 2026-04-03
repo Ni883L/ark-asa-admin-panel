@@ -413,8 +413,35 @@ const Actions = {
   }
 };
 window.restoreBackup = (name) => Actions.restoreBackup(name);
-window.downloadBackup = (name) => {
-  window.location.href = `/api/backups/download/${encodeURIComponent(name)}`;
+window.downloadBackup = async (name) => {
+  try {
+    const response = await fetch(`/api/backups/download/${encodeURIComponent(name)}`, {
+      method: 'GET',
+      credentials: 'same-origin'
+    });
+    if (!response.ok) {
+      let message = `HTTP ${response.status}`;
+      try {
+        const data = await response.json();
+        message = data.error || message;
+      } catch (_error) {
+        // ignore non-json download error body
+      }
+      throw new Error(message);
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    UI.setFeedback(`Backup ${name} wird heruntergeladen.`, 'success');
+  } catch (error) {
+    UI.setFeedback(`Backup-Download fehlgeschlagen: ${error.message}`, 'error');
+  }
 };
 
 const App = {
