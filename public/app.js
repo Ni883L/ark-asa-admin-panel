@@ -171,7 +171,7 @@ const Renderers = {
       target.innerHTML = '<div class="summary-item"><strong>Keine Backups vorhanden</strong><div class="hint">Erstelle zuerst ein manuelles Backup oder warte auf den nächsten automatischen Lauf.</div></div>';
       return;
     }
-    target.innerHTML = `<div class="item-list">${backups.map((backup) => `<div class="item backup-card"><strong>${backup.name}</strong><div class="backup-meta"><div>Geändert: ${backup.modifiedAt}</div><div>Größe: ${backup.size} Bytes</div></div><button onclick="restoreBackup('${backup.name.replace(/'/g, "\\'")}')">Restore</button></div>`).join('')}</div>`;
+    target.innerHTML = `<div class="item-list">${backups.map((backup) => `<div class="item backup-card"><strong>${backup.name}</strong><div class="backup-meta"><div>Geändert: ${backup.modifiedAt}</div><div>Größe: ${backup.size} Bytes</div></div><div class="actions wrap-actions"><button onclick="downloadBackup('${backup.name.replace(/'/g, "\\'")}')">Download</button><button onclick="restoreBackup('${backup.name.replace(/'/g, "\\'")}')">Restore</button></div></div>`).join('')}</div>`;
   },
 
   renderKeyValueBlock(targetId, value) {
@@ -384,6 +384,9 @@ const Actions = {
   }
 };
 window.restoreBackup = (name) => Actions.restoreBackup(name);
+window.downloadBackup = (name) => {
+  window.location.href = `/api/backups/download/${encodeURIComponent(name)}`;
+};
 
 const App = {
   async loadConfig(name = currentConfig) {

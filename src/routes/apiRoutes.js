@@ -275,6 +275,12 @@ router.post('/backups/validate', handleRoute(async (req, res) => {
   res.json({ ok: true, ...result });
 }));
 
+router.get('/backups/download/:name', handleRoute(async (req, res) => {
+  authService.requireRole(req, ['admin']);
+  const resolved = backupService.resolveBackupFile(req.params.name);
+  res.download(resolved.file, resolved.name);
+}));
+
 router.get('/logs', handleRoute(async (req, res) => {
   res.json({ log: monitorService.getRecentLogs(Number(req.query.lines || 200)) });
 }));
