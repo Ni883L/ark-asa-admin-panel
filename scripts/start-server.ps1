@@ -10,5 +10,6 @@ if ($serviceName) {
   }
 }
 if (-not $CommandLine) { throw 'Keine Startzeile übergeben.' }
-Start-Process -FilePath 'powershell' -ArgumentList "-NoProfile -WindowStyle Hidden -Command $CommandLine" -WindowStyle Hidden
-Write-Output 'process start triggered'
+$cmdPath = Join-Path $env:SystemRoot 'System32\cmd.exe'
+Start-Process -FilePath $cmdPath -ArgumentList "/c start \"ARK ASA\" /min $CommandLine" -WindowStyle Hidden
+Write-Output "process start triggered: $CommandLine"

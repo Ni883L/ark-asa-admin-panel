@@ -124,8 +124,10 @@ async function startServer() {
   }
   if (!guard.ok) throw new Error(`Start abgebrochen: ${guard.errors.join(' | ')}`);
   const profile = store.getActiveProfile();
-  const result = await powershell.run('start-server.ps1', [getProfileCommand(profile)]);
-  logger.audit('system', 'server-start', { guard });
+  const command = getProfileCommand(profile);
+  logger.info('Starting ASA with profile command', { command, profileId: profile?.id, ports: profile?.ports });
+  const result = await powershell.run('start-server.ps1', [command]);
+  logger.audit('system', 'server-start', { guard, command, ports: profile?.ports });
   return result;
 }
 
@@ -140,8 +142,10 @@ async function restartServer() {
   const guard = runtimeGuardService.validateRuntimePaths();
   if (!guard.ok) throw new Error(`Restart abgebrochen: ${guard.errors.join(' | ')}`);
   const profile = store.getActiveProfile();
-  const result = await powershell.run('restart-server.ps1', [getProfileCommand(profile)]);
-  logger.audit('system', 'server-restart', { guard });
+  const command = getProfileCommand(profile);
+  logger.info('Restarting ASA with profile command', { command, profileId: profile?.id, ports: profile?.ports });
+  const result = await powershell.run('restart-server.ps1', [command]);
+  logger.audit('system', 'server-restart', { guard, command, ports: profile?.ports });
   return result;
 }
 
