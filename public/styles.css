@@ -35,10 +35,10 @@ body {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 18px;
   min-height: 100vh;
-  padding: 20px;
+  padding: 14px;
 }
 
 .sidebar {
@@ -115,22 +115,22 @@ body {
 .main-shell {
   min-width: 0;
   display: grid;
-  gap: 20px;
+  gap: 14px;
 }
 
 .topbar {
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 18px;
   background:
     linear-gradient(135deg, rgba(99, 210, 161, 0.1), transparent 24%),
     rgba(15, 27, 24, 0.9);
   backdrop-filter: blur(10px);
-  padding: 12px 16px;
+  padding: 10px 12px;
 }
 
 .topbar-redesign {
   display: grid;
-  gap: 16px;
+  gap: 10px;
 }
 
 .topbar-main {
@@ -166,14 +166,14 @@ body {
 .hero-status-grid {
   display: grid;
   gap: 6px;
-  min-width: min(300px, 100%);
+  min-width: min(260px, 100%);
 }
 
 .hero-meta-card {
   border: 1px solid var(--border);
-  background: rgba(20, 7, 7, 0.92);
+  background: rgba(13, 24, 21, 0.92);
   border-radius: 12px;
-  padding: 8px 10px;
+  padding: 7px 9px;
 }
 
 .hero-label {
@@ -223,6 +223,19 @@ body {
 
 .content-grid.two-col {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.overview-layout,
+.server-ops-layout {
+  align-items: start;
+}
+
+.summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .content-grid.three-col {
@@ -281,6 +294,10 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 6px;
+}
+
+.stats-wide {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 }
 
 .stat {

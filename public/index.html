@@ -85,9 +85,19 @@
                 </div>
               </div>
 
-              <div id="statusGrid" class="stats"></div>
+              <div id="statusGrid" class="stats stats-wide"></div>
 
-              <div class="content-grid three-col compact-gap">
+              <div class="content-grid two-col compact-gap overview-layout">
+                <div class="card overview-summary-card span-2">
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Kurzstatus</p>
+                      <h4>Was jetzt wichtig ist</h4>
+                    </div>
+                  </div>
+                  <div id="overviewSummary" class="summary-stack summary-grid"></div>
+                </div>
+
                 <div class="card emphasis-card">
                   <div class="section-header compact-header">
                     <div>
@@ -109,16 +119,6 @@
                   </div>
                   <div id="players"></div>
                 </div>
-
-                <div class="card overview-summary-card">
-                  <div class="section-header compact-header">
-                    <div>
-                      <p class="eyebrow">Kurzstatus</p>
-                      <h4>Was jetzt wichtig ist</h4>
-                    </div>
-                  </div>
-                  <div id="overviewSummary" class="summary-stack"></div>
-                </div>
               </div>
             </section>
 
@@ -130,7 +130,7 @@
                 </div>
               </div>
 
-              <div class="content-grid three-col">
+              <div class="content-grid two-col server-ops-layout">
                 <div class="card">
                   <div class="section-header compact-header">
                     <div>
@@ -165,14 +165,14 @@
                   </div>
                 </div>
 
-                <div class="card server-summary-card">
+                <div class="card server-summary-card span-2">
                   <div class="section-header compact-header">
                     <div>
                       <p class="eyebrow">Serverstatus</p>
                       <h4>Auf einen Blick</h4>
                     </div>
                   </div>
-                  <div id="serverSummary" class="summary-stack"></div>
+                  <div id="serverSummary" class="summary-stack summary-grid"></div>
                 </div>
               </div>
 
