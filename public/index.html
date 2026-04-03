@@ -292,7 +292,7 @@
               <div class="section-header">
                 <div>
                   <p class="eyebrow">Automationen</p>
-                  <h3>Tasks & Autostart</h3>
+                  <h3>Tasks & Dienste</h3>
                 </div>
               </div>
               <div class="content-grid two-col">
@@ -301,14 +301,25 @@
                   <textarea id="tasksEditor" rows="12"></textarea>
                   <button id="saveTasksBtn">Tasks speichern</button>
                 </div>
-                <div class="card">
-                  <h4>Autostart</h4>
-                  <label class="checkbox-row"><input id="panelAutostartInput" type="checkbox" /> Panel-Dienst Autostart (Windows Task)</label>
-                  <label class="checkbox-row"><input id="asaAutostartInput" type="checkbox" /> ARK-Server-Dienst Auto-Start (Windows Service)</label>
+                <div class="card emphasis-card">
+                  <h4>Dienst-Übersicht</h4>
+                  <div id="serviceStatusCards" class="summary-stack"></div>
                   <div class="actions stack-actions">
-                    <button id="saveAutostartBtn" type="button">Autostart anwenden</button>
+                    <button id="saveAutostartBtn" type="button">Dienste anwenden</button>
                     <button id="repairPanelServiceBtn" type="button">Panel-Dienst neu registrieren</button>
                   </div>
+                </div>
+              </div>
+              <div class="content-grid two-col">
+                <div class="card">
+                  <h4>Panel-Dienst</h4>
+                  <label class="checkbox-row"><input id="panelAutostartInput" type="checkbox" /> Aktivieren</label>
+                  <div id="panelServiceInfo" class="formatted-output"></div>
+                </div>
+                <div class="card">
+                  <h4>ARK ASA Dienst</h4>
+                  <label class="checkbox-row"><input id="asaAutostartInput" type="checkbox" /> Aktivieren</label>
+                  <div id="asaServiceInfo" class="formatted-output"></div>
                 </div>
               </div>
             </section>

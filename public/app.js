@@ -298,6 +298,35 @@ const Renderers = {
     target.innerHTML = items.map((item) => `<div class="system-badge"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
   },
 
+  renderServiceOverview(panelAutostart = {}, asaAutostart = {}) {
+    const cards = document.getElementById('serviceStatusCards');
+    const panelInfo = document.getElementById('panelServiceInfo');
+    const asaInfo = document.getElementById('asaServiceInfo');
+    if (!cards || !panelInfo || !asaInfo) return;
+
+    const panelEnabled = !!panelAutostart?.result?.enabled;
+    const panelState = panelAutostart?.result?.state || (panelEnabled ? 'Configured' : 'Not configured');
+    const asaEnabled = !!asaAutostart?.result?.autoStartEnabled;
+    const asaState = asaAutostart?.result?.serviceName || (asaEnabled ? 'Configured' : 'Not configured');
+
+    cards.innerHTML = [
+      { title: 'Panel-Dienst', text: panelEnabled ? `Aktiv · ${panelState}` : `Nicht aktiv · ${panelState}` },
+      { title: 'ARK ASA Dienst', text: asaEnabled ? `Aktiv · ${asaState}` : `Nicht aktiv · ${asaState}` }
+    ].map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
+
+    panelInfo.innerHTML = `
+      <div class="formatted-row"><strong>Status</strong><span>${panelEnabled ? 'Aktiviert' : 'Nicht aktiviert'}</span></div>
+      <div class="formatted-row"><strong>Typ</strong><span>Windows Scheduled Task</span></div>
+      <div class="formatted-row"><strong>Zustand</strong><span>${panelState}</span></div>
+    `;
+
+    asaInfo.innerHTML = `
+      <div class="formatted-row"><strong>Status</strong><span>${asaEnabled ? 'Aktiviert' : 'Nicht aktiviert'}</span></div>
+      <div class="formatted-row"><strong>Typ</strong><span>Windows Service</span></div>
+      <div class="formatted-row"><strong>Dienstname</strong><span>${asaAutostart?.result?.serviceName || '-'}</span></div>
+    `;
+  },
+
   renderAccessHint(panelEnv = {}) {
     const hint = document.getElementById('accessHint');
     if (!hint || !bootstrapState?.appBinding) return;
@@ -462,6 +491,10 @@ const App = {
     Renderers.renderAccessHint(panelEnvResult.status === 'fulfilled' ? panelEnvResult.value : {});
     Renderers.renderSystemSummary(
       panelEnvResult.status === 'fulfilled' ? panelEnvResult.value : {},
+      panelAutostartResult.status === 'fulfilled' ? panelAutostartResult.value : {},
+      asaAutostartResult.status === 'fulfilled' ? asaAutostartResult.value : {}
+    );
+    Renderers.renderServiceOverview(
       panelAutostartResult.status === 'fulfilled' ? panelAutostartResult.value : {},
       asaAutostartResult.status === 'fulfilled' ? asaAutostartResult.value : {}
     );
