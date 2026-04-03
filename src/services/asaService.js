@@ -238,19 +238,10 @@ async function getPanelAutostartStatus() {
 }
 
 async function setPanelAutostart(enabled) {
-  const mode = enabled ? 'Enable' : 'Disable';
-  try {
-    const result = await powershell.run('panel-autostart.ps1', ['-Mode', mode]);
-    logger.audit('system', 'panel-autostart', { enabled: !!enabled, elevated: false });
-    return JSON.parse(result.stdout || '{}');
-  } catch (error) {
-    if (enabled && /Administratorrechte erforderlich/i.test(String(error.message || ''))) {
-      const elevated = await powershell.run('panel-autostart.ps1', ['-Mode', 'ElevateEnable']);
-      logger.audit('system', 'panel-autostart', { enabled: true, elevated: true });
-      return JSON.parse(elevated.stdout || '{}');
-    }
-    throw error;
-  }
+  const mode = enabled ? 'ElevateEnable' : 'Disable';
+  const result = await powershell.run('panel-autostart.ps1', ['-Mode', mode]);
+  logger.audit('system', 'panel-autostart', { enabled: !!enabled, elevated: enabled });
+  return JSON.parse(result.stdout || '{}');
 }
 
 async function getAsaAutostartStatus() {
