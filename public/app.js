@@ -674,7 +674,17 @@ const App = {
       const currentPassword = await Actions.requestSensitivePassword('Panel-Dienst neu registrieren');
       if (Preferences.shouldRequirePassword() && !currentPassword) return;
       try {
-        await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
+        try {
+          await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
+        } catch (error) {
+          const message = String(error.message || '');
+          if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
+            UI.setFeedback('Panel-Dienst wird eingerichtet. Verbindung wird neu aufgebaut...', 'info');
+            setTimeout(() => window.location.reload(), 5000);
+            return;
+          }
+          throw error;
+        }
         UI.setFeedback('Panel-Dienst neu registriert oder Admin-Registrierung angestoßen.', 'success');
         await App.refreshDashboard();
       } catch (error) {
