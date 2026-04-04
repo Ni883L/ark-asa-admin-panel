@@ -47,6 +47,12 @@ function Invoke-ScChecked([string]$ArgumentsLine) {
   return @{ output = ($output | Out-String).Trim(); exitCode = $exitCode }
 }
 
+function New-ServiceChecked([string]$Name, [string]$BinaryPath, [string]$Label) {
+  $output = & powershell -NoProfile -ExecutionPolicy Bypass -Command "New-Service -Name '$Name' -BinaryPathName '$BinaryPath' -DisplayName '$Label' -StartupType Automatic" 2>&1
+  $exitCode = $LASTEXITCODE
+  return @{ output = ($output | Out-String).Trim(); exitCode = $exitCode }
+}
+
 if ($Mode -eq 'Status') {
   Write-Output (Get-ServiceInfo | ConvertTo-Json -Compress)
   exit 0
@@ -94,10 +100,10 @@ if ($Mode -eq 'Install') {
     Start-Sleep -Seconds 2
   }
   $binaryPath = '"' + $nodePath + '" "' + $serverScript + '"'
-  $createResult = Invoke-ScChecked "create `"$ServiceName`" binPath= `"$binaryPath`" DisplayName= `"$DisplayName`" start= auto"
+  $createResult = New-ServiceChecked -Name $ServiceName -BinaryPath $binaryPath -Label $DisplayName
   $serviceInfo = Get-ServiceInfo
   if (-not $serviceInfo.exists) {
-    throw "Panel-Dienst konnte nicht erstellt werden. sc.exe: $($createResult.output)"
+    throw "Panel-Dienst konnte nicht erstellt werden. New-Service: $($createResult.output)"
   }
   $descriptionResult = Invoke-ScChecked "description `"$ServiceName`" `"ARK ASA Admin Panel Node service`""
   Start-Service -Name $ServiceName -ErrorAction Stop
