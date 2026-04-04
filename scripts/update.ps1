@@ -149,6 +149,19 @@ function Resolve-PanelConnection([hashtable]$EnvSettings) {
   return @{ Url = $url }
 }
 
+function Test-PanelReachable([string]$Url, [int]$TimeoutSeconds = 20) {
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  while ((Get-Date) -lt $deadline) {
+    try {
+      Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 3 | Out-Null
+      return $true
+    } catch {
+      Start-Sleep -Milliseconds 750
+    }
+  }
+  return $false
+}
+
 function Install-ProjectFromArchive([string]$RepoUrl, [string]$Branch, [string]$InstallPath) {
   $repoBaseUrl = $RepoUrl -replace '\.git$', ''
   $archiveUrl = "$repoBaseUrl/archive/refs/heads/$Branch.zip"
@@ -225,14 +238,17 @@ if (-not $npmCommand) {
 Write-Output "update complete from $previousCommit to $currentCommit"
 Write-Output "minimal backup created: $backup"
 
+$panelConnection = Resolve-PanelConnection (Get-EnvSettings (Join-Path $InstallPath '.env'))
 try {
   & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-restart.ps1') -InstallPath $InstallPath -Port 3000 | Out-Null
+  if (-not (Test-PanelReachable -Url $panelConnection.Url -TimeoutSeconds 25)) {
+    throw "Panel nach Update nicht erreichbar: $($panelConnection.Url)"
+  }
   Write-Output "panel restart completed"
 } catch {
-  Write-Warning "panel restart failed after update: $($_.Exception.Message)"
+  throw "panel restart failed after update: $($_.Exception.Message)"
 }
 
-$panelConnection = Resolve-PanelConnection (Get-EnvSettings (Join-Path $InstallPath '.env'))
 Write-Output "Install location: $InstallPath"
 Write-Output "Start panel with: cd '$InstallPath' ; npm start"
 Write-Output "Configuration website: $($panelConnection.Url)"

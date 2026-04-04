@@ -8,6 +8,7 @@ const backupService = require('./backupService');
 const runtimeGuardService = require('./runtimeGuardService');
 const { validateArkIni } = require('../util/ini');
 const { sanitizeName, sanitizePort, requireString } = require('../util/validators');
+const { parseJsonSafely, normalizeScriptError } = require('../util/scriptResult');
 const { spawn } = require('child_process');
 
 function getEffectiveAsaRoot() {
@@ -248,29 +249,45 @@ async function openPanelFirewall(port) {
 }
 
 async function getPanelAutostartStatus() {
-  const result = await powershell.run('panel-service.ps1', ['-Mode', 'Status', '-InstallPath', process.cwd()]);
-  return JSON.parse(result.stdout || '{}');
+  try {
+    const result = await powershell.run('panel-service.ps1', ['-Mode', 'Status', '-InstallPath', process.cwd()]);
+    return parseJsonSafely(result.stdout, {});
+  } catch (error) {
+    throw normalizeScriptError(error, 'Panel-Dienststatus konnte nicht gelesen werden.');
+  }
 }
 
 async function setPanelAutostart(enabled) {
-  const mode = enabled ? 'ElevateInstall' : 'ElevateUninstall';
-  const result = await powershell.run('panel-service.ps1', ['-Mode', mode, '-InstallPath', process.cwd()]);
-  logger.audit('system', 'panel-autostart', { enabled: !!enabled, type: 'service', elevated: true });
-  return JSON.parse(result.stdout || '{}');
+  try {
+    const mode = enabled ? 'ElevateInstall' : 'ElevateUninstall';
+    const result = await powershell.run('panel-service.ps1', ['-Mode', mode, '-InstallPath', process.cwd()]);
+    logger.audit('system', 'panel-autostart', { enabled: !!enabled, type: 'service', elevated: true });
+    return parseJsonSafely(result.stdout, {});
+  } catch (error) {
+    throw normalizeScriptError(error, 'Panel-Dienst konnte nicht geändert werden.');
+  }
 }
 
 async function getAsaAutostartStatus() {
-  const result = await powershell.run('asa-service.ps1', ['-Mode', 'Status']);
-  return JSON.parse(result.stdout || '{}');
+  try {
+    const result = await powershell.run('asa-service.ps1', ['-Mode', 'Status']);
+    return parseJsonSafely(result.stdout, {});
+  } catch (error) {
+    throw normalizeScriptError(error, 'ASA-Dienststatus konnte nicht gelesen werden.');
+  }
 }
 
 async function setAsaAutostart(enabled) {
-  const profile = store.getActiveProfile();
-  const command = getProfileCommand(profile).replace(/^"[^"]+"\s*/, '');
-  const mode = enabled ? 'ElevateInstall' : 'ElevateUninstall';
-  const result = await powershell.run('asa-service.ps1', ['-Mode', mode, '-CommandLine', command]);
-  logger.audit('system', 'asa-autostart', { enabled: !!enabled, type: 'service', elevated: true, command, ports: profile?.ports });
-  return JSON.parse(result.stdout || '{}');
+  try {
+    const profile = store.getActiveProfile();
+    const command = getProfileCommand(profile).replace(/^"[^"]+"\s*/, '');
+    const mode = enabled ? 'ElevateInstall' : 'ElevateUninstall';
+    const result = await powershell.run('asa-service.ps1', ['-Mode', mode, '-CommandLine', command]);
+    logger.audit('system', 'asa-autostart', { enabled: !!enabled, type: 'service', elevated: true, command, ports: profile?.ports });
+    return parseJsonSafely(result.stdout, {});
+  } catch (error) {
+    throw normalizeScriptError(error, 'ASA-Dienst konnte nicht geändert werden.');
+  }
 }
 
 module.exports = {
