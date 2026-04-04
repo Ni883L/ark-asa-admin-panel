@@ -403,16 +403,11 @@ foreach ($dir in $dirs) {
 
 if ($CreateStartupTask) {
   try {
-    powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-autostart.ps1') -Mode Enable -InstallPath $InstallPath | Out-Null
-    try {
-      Start-ScheduledTask -TaskName 'ArkAsaAdminPanel' | Out-Null
-    } catch {
-      Write-Warning (T "Panel-Autostart wurde registriert, konnte aber nicht sofort gestartet werden." "Panel autostart was registered but could not be started immediately.")
-    }
+    powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-service-launcher.ps1') -Mode Install -InstallPath $InstallPath | Out-Null
+    Write-Output (T "Panel-Dienstregistrierung wurde angestoßen." "Panel service registration was launched.")
   }
   catch {
-    Write-Warning (T "Autostart braucht Administratorrechte. Es wird jetzt eine Admin-PowerShell zur Registrierung gestartet..." "Autostart needs administrator rights. Launching elevated PowerShell for registration now...")
-    powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-autostart.ps1') -Mode ElevateEnable -InstallPath $InstallPath | Out-Null
+    Write-Warning (T "Panel-Dienst konnte nicht automatisch registriert werden." "Panel service could not be registered automatically.")
   }
 }
 

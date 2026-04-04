@@ -1,5 +1,6 @@
 param(
   [string]$TaskName = 'ArkAsaAdminPanel',
+  [string]$ServiceName = 'ArkAsaAdminPanel',
   [string]$InstallPath = (Split-Path -Parent $PSScriptRoot),
   [int]$Port = 3000,
   [int]$TimeoutSeconds = 20
@@ -58,14 +59,21 @@ function Start-DetachedNode([string]$WorkingDirectory) {
   return $process
 }
 
-$task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-if ($task) {
-  try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue | Out-Null } catch {}
+$service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+if ($service) {
+  try { Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue | Out-Null } catch {}
   Stop-PanelProcesses -PortNumber $Port
-  Start-ScheduledTask -TaskName $TaskName
+  Start-Service -Name $ServiceName
 } else {
-  Stop-PanelProcesses -PortNumber $Port
-  Start-DetachedNode -WorkingDirectory $InstallPath | Out-Null
+  $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+  if ($task) {
+    try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue | Out-Null } catch {}
+    Stop-PanelProcesses -PortNumber $Port
+    Start-ScheduledTask -TaskName $TaskName
+  } else {
+    Stop-PanelProcesses -PortNumber $Port
+    Start-DetachedNode -WorkingDirectory $InstallPath | Out-Null
+  }
 }
 
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -86,6 +94,7 @@ Write-Output (@{
     ok = $true
     restarted = $true
     taskUsed = [bool]$task
+    serviceUsed = [bool]$service
     port = $Port
     installPath = $InstallPath
   } | ConvertTo-Json -Compress)
