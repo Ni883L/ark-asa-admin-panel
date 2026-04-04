@@ -52,10 +52,19 @@ async function getMetrics() {
   if (profile?.ports) {
     parsed.configuredPorts = `Game ${profile.ports.game} · Query ${profile.ports.query}${profile.ports.rcon ? ` · RCON ${profile.ports.rcon}` : ''}`;
     parsed.configuredPortsRaw = JSON.stringify(profile.ports);
+    const udpEntries = String(parsed.udpPortsRaw || '').split(',').filter(Boolean);
+    const relevantUdpEntries = udpEntries.filter((entry) => {
+      const port = Number(String(entry).split(':')[1]);
+      return [profile.ports.game, profile.ports.query, profile.ports.rcon].filter(Boolean).includes(port);
+    });
+    parsed.arkReachabilityPorts = relevantUdpEntries.join(',');
+    parsed.displayPorts = relevantUdpEntries.length ? relevantUdpEntries.join(',') : parsed.configuredPorts;
   }
   const recentLog = getRecentLogs(300);
   parsed.readiness = deriveServerReadiness(parsed, recentLog);
-  parsed.displayPorts = parsed.udpPorts || parsed.ports || parsed.configuredPorts || 'unknown';
+  if (!parsed.displayPorts) {
+    parsed.displayPorts = parsed.udpPorts || parsed.ports || parsed.configuredPorts || 'unknown';
+  }
   return parsed;
 }
 

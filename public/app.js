@@ -256,7 +256,7 @@ const Renderers = {
       { title: 'Server', text: metrics.readiness?.label || status.status || 'Unbekannt' },
       { title: 'Karte', text: metrics.loadedMap || metrics.mapName || 'Noch nicht erkannt' },
       { title: 'Spiel-Version', text: versions?.server?.version || 'Unbekannt' },
-      { title: 'Ports', text: metrics.ports || metrics.displayPorts || status.configuredPorts || 'unknown' }
+      { title: 'Ports', text: metrics.displayPorts || status.configuredPorts || 'unknown' }
     ];
     target.innerHTML = items.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
   },
@@ -268,7 +268,7 @@ const Renderers = {
       { title: 'Readiness', text: metrics.readiness?.detail || metrics.readiness?.label || 'Unbekannt' },
       { title: 'Version', text: versions?.server?.version || '-' },
       { title: 'Letzter Start', text: metrics.lastStart || '-' },
-      { title: 'Ports', text: metrics.ports || metrics.displayPorts || status.configuredPorts || '-' },
+      { title: 'Ports', text: metrics.displayPorts || status.configuredPorts || '-' },
       { title: 'Karte', text: metrics.loadedMap || metrics.mapName || '-' }
     ];
     target.innerHTML = items.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
@@ -302,7 +302,7 @@ const Renderers = {
 
   renderReachabilitySummary(metrics = {}, health = {}) {
     const targets = ['reachabilitySummary', 'systemReachabilitySummary'];
-    const udpPorts = String(metrics.udpPorts || metrics.displayPorts || 'unknown');
+    const udpPorts = String(metrics.displayPorts || metrics.arkReachabilityPorts || metrics.udpPorts || 'unknown');
     const checks = Array.isArray(health?.ports) ? health.ports : [];
     const openCount = checks.filter((entry) => entry.open).length;
     const lines = [

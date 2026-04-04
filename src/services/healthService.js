@@ -25,7 +25,7 @@ async function getHealth() {
   const metrics = await monitorService.getMetrics();
   const warnings = getRuntimeWarnings();
   const portsToCheck = [];
-  const portsField = String(metrics.udpPortsRaw || metrics.portsRaw || '').split(',').filter(Boolean);
+  const portsField = String(metrics.arkReachabilityPorts || metrics.udpPortsRaw || metrics.portsRaw || '').split(',').filter(Boolean);
   for (const item of portsField) {
     const [name, port] = item.split(':');
     const portNumber = Number(port);
