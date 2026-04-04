@@ -41,8 +41,8 @@ function Get-ServiceInfo {
   }
 }
 
-function Invoke-ScChecked([string[]]$Arguments) {
-  $output = & sc.exe @Arguments 2>&1
+function Invoke-ScChecked([string]$ArgumentsLine) {
+  $output = & cmd.exe /c "sc.exe $ArgumentsLine" 2>&1
   $exitCode = $LASTEXITCODE
   return @{ output = ($output | Out-String).Trim(); exitCode = $exitCode }
 }
@@ -90,16 +90,16 @@ if ($Mode -eq 'Install') {
   $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   if ($existing) {
     try { Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue } catch {}
-    $deleteResult = Invoke-ScChecked @('delete', $ServiceName)
+    $deleteResult = Invoke-ScChecked "delete `"$ServiceName`""
     Start-Sleep -Seconds 2
   }
   $binaryPath = '"' + $nodePath + '" "' + $serverScript + '"'
-  $createResult = Invoke-ScChecked @('create', $ServiceName, 'binPath=', $binaryPath, 'DisplayName=', $DisplayName, 'start=', 'auto')
+  $createResult = Invoke-ScChecked "create `"$ServiceName`" binPath= `"$binaryPath`" DisplayName= `"$DisplayName`" start= auto"
   $serviceInfo = Get-ServiceInfo
   if (-not $serviceInfo.exists) {
     throw "Panel-Dienst konnte nicht erstellt werden. sc.exe: $($createResult.output)"
   }
-  $descriptionResult = Invoke-ScChecked @('description', $ServiceName, 'ARK ASA Admin Panel Node service')
+  $descriptionResult = Invoke-ScChecked "description `"$ServiceName`" `"ARK ASA Admin Panel Node service`""
   Start-Service -Name $ServiceName -ErrorAction Stop
   Write-Output (Get-ServiceInfo | ConvertTo-Json -Compress)
   exit 0
