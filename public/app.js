@@ -335,14 +335,16 @@ const Renderers = {
 
     panelInfo.innerHTML = `
       <div class="formatted-row"><strong>Status</strong><span>${panelEnabled ? 'Aktiviert' : 'Nicht aktiviert'}</span></div>
-      <div class="formatted-row"><strong>Typ</strong><span>Windows Service</span></div>
+      <div class="formatted-row"><strong>Typ</strong><span>Windows-Dienst</span></div>
+      <div class="formatted-row"><strong>Dienstname</strong><span>${panelAutostart?.result?.serviceName || 'ArkAsaAdminPanel'}</span></div>
       <div class="formatted-row"><strong>Zustand</strong><span>${panelState}</span></div>
     `;
 
     asaInfo.innerHTML = `
       <div class="formatted-row"><strong>Status</strong><span>${asaEnabled ? 'Aktiviert' : 'Nicht aktiviert'}</span></div>
-      <div class="formatted-row"><strong>Typ</strong><span>Windows Service</span></div>
+      <div class="formatted-row"><strong>Typ</strong><span>Windows-Dienst</span></div>
       <div class="formatted-row"><strong>Dienstname</strong><span>${asaAutostart?.result?.serviceName || '-'}</span></div>
+      <div class="formatted-row"><strong>Zustand</strong><span>${asaState}</span></div>
     `;
   },
 
@@ -785,20 +787,34 @@ const App = {
       const currentPassword = await Actions.requestSensitivePassword('Panel-Dienst neu registrieren');
       if (Preferences.shouldRequirePassword() && !currentPassword) return;
       try {
-        try {
-          await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
-        } catch (error) {
-          const message = String(error.message || '');
-          if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
-            UI.setFeedback('Panel-Dienst wird eingerichtet. Verbindung wird neu aufgebaut...', 'info');
-            setTimeout(() => window.location.reload(), 5000);
-            return;
-          }
-          throw error;
-        }
-        UI.setFeedback('Panel-Dienst neu registriert oder Admin-Registrierung angestoßen.', 'success');
-        await App.refreshDashboard();
+        await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
+        UI.setFeedback('Panel-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
+        setTimeout(() => window.location.reload(), 8000);
       } catch (error) {
+        const message = String(error.message || '');
+        if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
+          UI.setFeedback('Panel-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
+          setTimeout(() => window.location.reload(), 8000);
+          return;
+        }
+        UI.setFeedback(error.message, 'error');
+      }
+    });
+
+    document.getElementById('repairAsaServiceBtn')?.addEventListener('click', async () => {
+      const currentPassword = await Actions.requestSensitivePassword('ARK ASA Dienst neu registrieren');
+      if (Preferences.shouldRequirePassword() && !currentPassword) return;
+      try {
+        await Api.request('/api/actions/asa-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
+        UI.setFeedback('ARK ASA Dienst wird neu registriert.', 'info');
+        setTimeout(() => window.location.reload(), 8000);
+      } catch (error) {
+        const message = String(error.message || '');
+        if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
+          UI.setFeedback('ARK ASA Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
+          setTimeout(() => window.location.reload(), 8000);
+          return;
+        }
         UI.setFeedback(error.message, 'error');
       }
     });
