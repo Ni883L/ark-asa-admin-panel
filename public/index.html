@@ -176,14 +176,26 @@
                 </div>
               </div>
 
-              <div class="content-grid two-col">
+              <div class="content-grid three-col practical-grid">
                 <div class="card formatted-card">
                   <h4>Health</h4>
-                  <div id="healthInfo" class="formatted-output"></div>
+                  <div id="healthInfo" class="formatted-output compact-output"></div>
                 </div>
                 <div class="card formatted-card">
                   <h4>Versionen</h4>
-                  <div id="versionInfo" class="formatted-output"></div>
+                  <div id="versionInfo" class="formatted-output compact-output"></div>
+                </div>
+                <div class="card emphasis-card">
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Erreichbarkeit</p>
+                      <h4>Ports & Firewall</h4>
+                    </div>
+                  </div>
+                  <div id="reachabilitySummary" class="summary-stack compact-summary"></div>
+                  <div class="actions stack-actions">
+                    <button id="checkAsaReachabilityBtn" type="button">ARK Ports prüfen</button>
+                  </div>
                 </div>
               </div>
             </section>
@@ -332,7 +344,7 @@
                   <h3>Firewall, Logs & Audit</h3>
                 </div>
               </div>
-              <div class="content-grid two-col">
+              <div class="content-grid three-col practical-grid">
                 <div class="card system-ops-card">
                   <div class="section-header compact-header">
                     <div>
@@ -354,10 +366,19 @@
                       <h4>Zugänge</h4>
                     </div>
                   </div>
-                  <div id="usersInfo" class="formatted-output"></div>
+                  <div id="usersInfo" class="formatted-output compact-output"></div>
+                </div>
+                <div class="card emphasis-card">
+                  <div class="section-header compact-header">
+                    <div>
+                      <p class="eyebrow">Server-Netzwerk</p>
+                      <h4>ARK Ports & Freigaben</h4>
+                    </div>
+                  </div>
+                  <div id="systemReachabilitySummary" class="summary-stack compact-summary"></div>
                 </div>
               </div>
-              <div class="content-grid two-col">
+              <div class="content-grid two-col practical-grid-wide">
                 <div class="card log-panel">
                   <div class="section-header compact-header">
                     <div>

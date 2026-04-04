@@ -242,6 +242,14 @@ body {
   grid-template-columns: 1.2fr 1fr 0.9fr;
 }
 
+.practical-grid {
+  grid-template-columns: 1fr 1fr minmax(260px, 0.9fr);
+}
+
+.practical-grid-wide {
+  align-items: start;
+}
+
 .compact-gap { gap: 14px; }
 
 .card {
@@ -290,6 +298,14 @@ body {
   font-size: .78rem;
 }
 
+.compact-output .formatted-row {
+  padding: 5px 0;
+}
+
+.compact-output .formatted-row strong {
+  font-size: .74rem;
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
@@ -298,6 +314,13 @@ body {
 
 .stats-wide {
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.system-badge {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(16, 31, 27, 0.82);
 }
 
 .stat {

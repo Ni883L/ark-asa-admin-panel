@@ -277,6 +277,8 @@ const Renderers = {
   renderSystemSummary(panelEnv = {}, panelAutostart = {}, asaAutostart = {}) {
     const target = document.getElementById('systemSummary');
     if (!target) return;
+    const panelEnabled = !!(panelAutostart?.result?.enabled || panelAutostart?.result?.exists);
+    const asaEnabled = !!(asaAutostart?.result?.autoStartEnabled || asaAutostart?.result?.exists);
     const items = [
       {
         title: 'Panel-Zugriff',
@@ -287,15 +289,32 @@ const Renderers = {
         text: panelEnv?.httpsEnabled ? 'Aktiviert' : 'Deaktiviert'
       },
       {
-        title: 'Panel-Autostart',
-        text: panelAutostart?.result?.enabled ? 'Aktiv' : 'Nicht aktiv'
+        title: 'Panel-Dienst',
+        text: panelEnabled ? 'Aktiv' : 'Nicht aktiv'
       },
       {
-        title: 'ASA-Autostart',
-        text: asaAutostart?.result?.autoStartEnabled ? 'Aktiv' : 'Nicht aktiv'
+        title: 'ASA-Dienst',
+        text: asaEnabled ? 'Aktiv' : 'Nicht aktiv'
       }
     ];
     target.innerHTML = items.map((item) => `<div class="system-badge"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
+  },
+
+  renderReachabilitySummary(metrics = {}, health = {}) {
+    const targets = ['reachabilitySummary', 'systemReachabilitySummary'];
+    const udpPorts = String(metrics.udpPorts || metrics.displayPorts || 'unknown');
+    const checks = Array.isArray(health?.ports) ? health.ports : [];
+    const openCount = checks.filter((entry) => entry.open).length;
+    const lines = [
+      { title: 'UDP Ports', text: udpPorts },
+      { title: 'Checks', text: checks.length ? `${openCount}/${checks.length} erreichbar` : 'Noch nicht geprüft' },
+      { title: 'Health', text: health?.overall || 'unknown' }
+    ];
+    for (const id of targets) {
+      const target = document.getElementById(id);
+      if (!target) continue;
+      target.innerHTML = lines.map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
+    }
   },
 
   renderServiceOverview(panelAutostart = {}, asaAutostart = {}) {
@@ -505,7 +524,12 @@ const App = {
     }
 
     if (profilesResult.status === 'fulfilled') document.getElementById('profilesEditor').value = JSON.stringify(profilesResult.value, null, 2);
-    if (healthResult.status === 'fulfilled') Renderers.renderKeyValueBlock('healthInfo', healthResult.value);
+    if (healthResult.status === 'fulfilled') {
+      Renderers.renderKeyValueBlock('healthInfo', healthResult.value);
+      if (dashboardResult.status === 'fulfilled') {
+        Renderers.renderReachabilitySummary(dashboardResult.value.metrics || {}, healthResult.value || {});
+      }
+    }
     if (versionsResult.status === 'fulfilled') Renderers.renderKeyValueBlock('versionInfo', versionsResult.value);
     if (tasksResult.status === 'fulfilled') document.getElementById('tasksEditor').value = JSON.stringify(tasksResult.value.tasks || [], null, 2);
     if (usersResult.status === 'fulfilled') Renderers.renderKeyValueBlock('usersInfo', usersResult.value.users || []);
@@ -686,6 +710,15 @@ const App = {
         await Api.request('/api/actions/panel-restart', { method: 'POST', body: JSON.stringify({ currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
         UI.setFeedback('Webdienst-Neustart ausgelöst. Seite wird neu geladen.', 'info');
         setTimeout(() => window.location.reload(), 4000);
+      } catch (error) {
+        UI.setFeedback(error.message, 'error');
+      }
+    });
+
+    document.getElementById('checkAsaReachabilityBtn')?.addEventListener('click', async () => {
+      try {
+        await App.refreshDashboard();
+        UI.setFeedback('ARK Ports und Erreichbarkeit aktualisiert.', 'success');
       } catch (error) {
         UI.setFeedback(error.message, 'error');
       }
