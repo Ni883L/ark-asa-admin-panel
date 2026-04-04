@@ -222,8 +222,18 @@ async function updateAndRestartPanel() {
 }
 
 async function restartPanelService() {
+  try {
+    const serviceStatus = JSON.parse((await powershell.run('panel-service.ps1', ['-Mode', 'Status', '-InstallPath', process.cwd()])).stdout || '{}');
+    if (serviceStatus.exists) {
+      const result = await powershell.run('panel-service.ps1', ['-Mode', 'Restart', '-InstallPath', process.cwd()]);
+      logger.audit('system', 'panel-restart-service', { port: defaults.app.port, mode: 'service' });
+      return result;
+    }
+  } catch (_error) {
+    // fallback below
+  }
   const result = await powershell.run('panel-restart.ps1', ['-Port', String(defaults.app.port)]);
-  logger.audit('system', 'panel-restart-service', { port: defaults.app.port });
+  logger.audit('system', 'panel-restart-service', { port: defaults.app.port, mode: 'legacy-task' });
   return result;
 }
 
@@ -238,14 +248,14 @@ async function openPanelFirewall(port) {
 }
 
 async function getPanelAutostartStatus() {
-  const result = await powershell.run('panel-autostart.ps1', ['-Mode', 'Status']);
+  const result = await powershell.run('panel-service.ps1', ['-Mode', 'Status', '-InstallPath', process.cwd()]);
   return JSON.parse(result.stdout || '{}');
 }
 
 async function setPanelAutostart(enabled) {
-  const mode = enabled ? 'ElevateEnable' : 'Disable';
-  const result = await powershell.run('panel-autostart.ps1', ['-Mode', mode]);
-  logger.audit('system', 'panel-autostart', { enabled: !!enabled, elevated: enabled });
+  const mode = enabled ? 'Install' : 'Uninstall';
+  const result = await powershell.run('panel-service.ps1', ['-Mode', mode, '-InstallPath', process.cwd()]);
+  logger.audit('system', 'panel-autostart', { enabled: !!enabled, type: 'service' });
   return JSON.parse(result.stdout || '{}');
 }
 

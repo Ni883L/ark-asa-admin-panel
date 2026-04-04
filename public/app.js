@@ -304,8 +304,8 @@ const Renderers = {
     const asaInfo = document.getElementById('asaServiceInfo');
     if (!cards || !panelInfo || !asaInfo) return;
 
-    const panelEnabled = !!panelAutostart?.result?.enabled;
-    const panelState = panelAutostart?.result?.state || (panelEnabled ? 'Configured' : 'Not configured');
+    const panelEnabled = !!(panelAutostart?.result?.enabled || panelAutostart?.result?.exists);
+    const panelState = panelAutostart?.result?.status || panelAutostart?.result?.state || (panelEnabled ? 'Installed' : 'Not installed');
     const asaEnabled = !!asaAutostart?.result?.autoStartEnabled;
     const asaState = asaAutostart?.result?.serviceName || (asaEnabled ? 'Configured' : 'Not configured');
 
@@ -316,7 +316,7 @@ const Renderers = {
 
     panelInfo.innerHTML = `
       <div class="formatted-row"><strong>Status</strong><span>${panelEnabled ? 'Aktiviert' : 'Nicht aktiviert'}</span></div>
-      <div class="formatted-row"><strong>Typ</strong><span>Windows Scheduled Task</span></div>
+      <div class="formatted-row"><strong>Typ</strong><span>Windows Service</span></div>
       <div class="formatted-row"><strong>Zustand</strong><span>${panelState}</span></div>
     `;
 
