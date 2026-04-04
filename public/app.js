@@ -755,17 +755,18 @@ const App = {
         const asaEnabled = document.getElementById('asaAutostartInput').checked;
         try {
           await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
+          await Api.request('/api/actions/asa-autostart', { method: 'POST', body: JSON.stringify({ enabled: asaEnabled, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
         } catch (error) {
-          if (String(error.message || '').includes('Netzwerkfehler: API nicht erreichbar')) {
-            UI.setFeedback('Autostart wird angewendet. Verbindung wird neu aufgebaut...', 'info');
-            setTimeout(() => window.location.reload(), 5000);
+          const message = String(error.message || '');
+          if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
+            UI.setFeedback('Dienste werden eingerichtet. Verbindung wird neu aufgebaut...', 'info');
+            setTimeout(() => window.location.reload(), 6000);
             return;
           }
           throw error;
         }
-        await Api.request('/api/actions/asa-autostart', { method: 'POST', body: JSON.stringify({ enabled: asaEnabled, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
-        UI.setFeedback('Autostart aktualisiert.', 'success');
-        await App.refreshDashboard();
+        UI.setFeedback('Dienst-Registrierung angestoßen.', 'success');
+        setTimeout(() => window.location.reload(), 4000);
       } catch (error) {
         UI.setFeedback(error.message, 'error');
       }

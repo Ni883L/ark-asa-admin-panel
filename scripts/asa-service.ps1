@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('Status', 'Install', 'Uninstall', 'Start', 'Stop', 'Restart')]
+  [ValidateSet('Status', 'Install', 'Uninstall', 'Start', 'Stop', 'Restart', 'ElevateInstall', 'ElevateUninstall')]
   [string]$Mode = 'Status',
   [string]$ServiceName = $env:ASA_SERVER_SERVICE_NAME,
   [string]$DisplayName = 'ARK ASA Server',
@@ -32,6 +32,31 @@ function Get-ServiceInfo {
 
 if ($Mode -eq 'Status') {
   Write-Output (Get-ServiceInfo | ConvertTo-Json -Compress)
+  exit 0
+}
+
+if ($Mode -in @('ElevateInstall', 'ElevateUninstall')) {
+  $targetMode = if ($Mode -eq 'ElevateInstall') { 'Install' } else { 'Uninstall' }
+  $scriptPath = $MyInvocation.MyCommand.Path
+  $arguments = @(
+    '-NoProfile',
+    '-ExecutionPolicy', 'Bypass',
+    '-File', ('"' + $scriptPath + '"'),
+    '-Mode', $targetMode,
+    '-ServiceName', ('"' + $ServiceName + '"'),
+    '-DisplayName', ('"' + $DisplayName + '"'),
+    '-InstallPath', ('"' + $InstallPath + '"'),
+    '-AsaExe', ('"' + $AsaExe + '"'),
+    '-CommandLine', ('"' + $CommandLine.Replace('"', '\"') + '"')
+  ) -join ' '
+  Start-Process -Verb RunAs -FilePath 'powershell.exe' -ArgumentList $arguments | Out-Null
+  Write-Output (@{
+    ok = $true
+    elevated = $true
+    launched = $true
+    mode = $targetMode
+    serviceName = $ServiceName
+  } | ConvertTo-Json -Compress)
   exit 0
 }
 
