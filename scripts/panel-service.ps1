@@ -31,14 +31,20 @@ function Get-ServiceInfo {
   $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   $wmi = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
   return @{
-    exists = [bool]$service
-    status = if ($service) { $service.Status.ToString() } else { 'NotInstalled' }
+    exists = [bool]$wmi
+    status = if ($service) { $service.Status.ToString() } elseif ($wmi) { $wmi.State } else { 'NotInstalled' }
     startMode = if ($wmi) { $wmi.StartMode } else { 'Unknown' }
     serviceName = $ServiceName
     displayName = if ($wmi) { $wmi.DisplayName } else { $DisplayName }
     installPath = $InstallPath
     binaryPath = if ($wmi) { $wmi.PathName } else { '' }
   }
+}
+
+function Invoke-ScChecked([string[]]$Arguments) {
+  $output = & sc.exe @Arguments 2>&1
+  $exitCode = $LASTEXITCODE
+  return @{ output = ($output | Out-String).Trim(); exitCode = $exitCode }
 }
 
 if ($Mode -eq 'Status') {
@@ -84,13 +90,17 @@ if ($Mode -eq 'Install') {
   $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   if ($existing) {
     try { Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue } catch {}
-    & sc.exe delete $ServiceName | Out-Null
+    $deleteResult = Invoke-ScChecked @('delete', $ServiceName)
     Start-Sleep -Seconds 2
   }
   $binaryPath = '"' + $nodePath + '" "' + $serverScript + '"'
-  & sc.exe create $ServiceName binPath= $binaryPath DisplayName= '"' + $DisplayName + '"' start= auto | Out-Null
-  & sc.exe description $ServiceName 'ARK ASA Admin Panel Node service' | Out-Null
-  Start-Service -Name $ServiceName
+  $createResult = Invoke-ScChecked @('create', $ServiceName, 'binPath=', $binaryPath, 'DisplayName=', $DisplayName, 'start=', 'auto')
+  $serviceInfo = Get-ServiceInfo
+  if (-not $serviceInfo.exists) {
+    throw "Panel-Dienst konnte nicht erstellt werden. sc.exe: $($createResult.output)"
+  }
+  $descriptionResult = Invoke-ScChecked @('description', $ServiceName, 'ARK ASA Admin Panel Node service')
+  Start-Service -Name $ServiceName -ErrorAction Stop
   Write-Output (Get-ServiceInfo | ConvertTo-Json -Compress)
   exit 0
 }
