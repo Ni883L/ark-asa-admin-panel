@@ -774,8 +774,8 @@ const App = {
           }
           throw error;
         }
-        UI.setFeedback('Dienst-Registrierung angestoßen.', 'success');
-        setTimeout(() => window.location.reload(), 4000);
+        UI.setFeedback('Dienst-Registrierung läuft. Seite wird danach neu verbunden...', 'info');
+        setTimeout(() => window.location.reload(), 8000);
       } catch (error) {
         UI.setFeedback(error.message, 'error');
       }

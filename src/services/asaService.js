@@ -259,9 +259,9 @@ async function getPanelAutostartStatus() {
 
 async function setPanelAutostart(enabled) {
   try {
-    const mode = enabled ? 'ElevateInstall' : 'ElevateUninstall';
-    const result = await powershell.run('panel-service.ps1', ['-Mode', mode, '-InstallPath', process.cwd()]);
-    logger.audit('system', 'panel-autostart', { enabled: !!enabled, type: 'service', elevated: true });
+    const mode = enabled ? 'Install' : 'Uninstall';
+    const result = await powershell.run('panel-service-launcher.ps1', ['-Mode', mode, '-InstallPath', process.cwd()]);
+    logger.audit('system', 'panel-autostart', { enabled: !!enabled, type: 'service', elevated: true, externalLauncher: true });
     return parseJsonSafely(result.stdout, {});
   } catch (error) {
     throw normalizeScriptError(error, 'Panel-Dienst konnte nicht geändert werden.');
