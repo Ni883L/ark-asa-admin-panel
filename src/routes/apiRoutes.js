@@ -289,16 +289,39 @@ router.get('/backups/download/:name', handleRoute(async (req, res) => {
 router.post('/backups/import', upload.single('backup'), handleRoute(async (req, res) => {
   authService.requireRole(req, ['admin']);
   if (!req.file) throw new ValidationError('Keine ZIP-Datei hochgeladen.', 'BACKUP_UPLOAD_MISSING');
-  const imported = backupService.importBackup(req.file.path, req.file.originalname);
-  const validation = await backupService.validateBackup(imported.name);
-  res.json({ ok: true, imported, validation });
+  let imported;
+  try {
+    imported = backupService.importBackup(req.file.path, req.file.originalname);
+    const validation = await backupService.validateBackup(imported.name);
+    res.json({ ok: true, imported, validation });
+  } catch (error) {
+    if (imported?.file && fs.existsSync(imported.file)) {
+      try { fs.unlinkSync(imported.file); } catch (_error) {}
+    }
+    throw error;
+  } finally {
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_error) {}
+    }
+  }
 }));
 
 router.get('/backups/export-savegame', handleRoute(async (req, res) => {
   authService.requireRole(req, ['admin']);
   const exported = backupService.exportSavegameBundle();
-  await require('child_process').execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', `Compress-Archive -Path '${exported.sourcePath.replace(/'/g, "''")}\\*' -DestinationPath '${exported.exportFile.replace(/'/g, "''")}' -Force`], { windowsHide: true });
-  res.download(exported.exportFile, exported.exportName);
+  try {
+    await require('child_process').execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', `Compress-Archive -Path '${exported.sourcePath.replace(/'/g, "''")}\\*' -DestinationPath '${exported.exportFile.replace(/'/g, "''")}' -Force`], { windowsHide: true });
+    res.download(exported.exportFile, exported.exportName, () => {
+      if (fs.existsSync(exported.exportFile)) {
+        try { fs.unlinkSync(exported.exportFile); } catch (_error) {}
+      }
+    });
+  } catch (error) {
+    if (fs.existsSync(exported.exportFile)) {
+      try { fs.unlinkSync(exported.exportFile); } catch (_error) {}
+    }
+    throw error;
+  }
 }));
 
 router.get('/logs', handleRoute(async (req, res) => {

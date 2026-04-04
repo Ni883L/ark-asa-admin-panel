@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const defaults = require('../config/defaults');
 const powershell = require('./powershell');
 const logger = require('./logger');
@@ -88,18 +89,24 @@ function importBackup(tempFilePath, originalName) {
   if (!baseName.toLowerCase().endsWith('.zip')) {
     throw new ValidationError('Nur ZIP-Backups können importiert werden.', 'BACKUP_IMPORT_NOT_ZIP');
   }
-  const safeName = `${Date.now()}-${baseName}`;
+  const stat = fs.statSync(tempFilePath);
+  if (!stat.size || stat.size < 1024) {
+    throw new ValidationError('ZIP-Datei ist leer oder zu klein.', 'BACKUP_IMPORT_TOO_SMALL');
+  }
+  const safeStem = baseName.replace(/[^A-Za-z0-9._-]+/g, '-');
+  const safeName = `${Date.now()}-${safeStem}`;
   const destination = path.join(defaults.paths.backupDir, safeName);
   fs.copyFileSync(tempFilePath, destination);
-  logger.audit('system', 'backup-import', { safeName });
-  return { name: safeName, file: destination };
+  logger.audit('system', 'backup-import', { safeName, size: stat.size });
+  return { name: safeName, file: destination, size: stat.size };
 }
 
 function exportSavegameBundle() {
   fs.mkdirSync(defaults.paths.tempDir, { recursive: true });
-  fs.mkdirSync(defaults.paths.backupDir, { recursive: true });
-  const exportName = `savegame-export-${Date.now()}.zip`;
-  const exportFile = path.join(defaults.paths.backupDir, exportName);
+  const exportDir = path.join(defaults.paths.tempDir, 'savegame-exports');
+  fs.mkdirSync(exportDir, { recursive: true });
+  const exportName = `savegame-export-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.zip`;
+  const exportFile = path.join(exportDir, exportName);
   const sourcePath = defaults.asa.savedArksPath;
   if (!sourcePath || !fs.existsSync(sourcePath)) {
     throw new ValidationError('SavedArks-Pfad nicht gefunden.', 'SAVEGAME_SOURCE_MISSING');

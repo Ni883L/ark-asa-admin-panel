@@ -367,6 +367,15 @@ const Renderers = {
   }
 };
 
+function toUserMessage(error) {
+  const message = String(error || 'Unbekannter Fehler');
+  if (message.includes('Administratorrechte erforderlich')) return 'Administratorrechte erforderlich.';
+  if (message.includes('Nicht angemeldet')) return 'Sitzung verloren. Bitte Seite neu laden.';
+  if (message.includes('CSRF')) return 'Sicherheitsprüfung fehlgeschlagen. Bitte Seite neu laden.';
+  if (message.includes('Netzwerkfehler: API nicht erreichbar')) return 'Netzwerkfehler: API nicht erreichbar.';
+  return message;
+}
+
 const Api = {
   async request(url, options = {}) {
     const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
@@ -387,7 +396,7 @@ const Api = {
       data = { error: text || 'Unbekannter Fehler' };
     }
 
-    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    if (!response.ok) throw new Error(toUserMessage(data.error || `HTTP ${response.status}`));
     return data;
   }
 };
@@ -814,7 +823,7 @@ const App = {
         UI.setFeedback(`ZIP ${data.imported?.name || file.name} importiert.`, 'success');
         await App.refreshDashboard();
       } catch (error) {
-        UI.setFeedback(`ZIP-Import fehlgeschlagen: ${error.message}`, 'error');
+        UI.setFeedback(`ZIP-Import fehlgeschlagen: ${toUserMessage(error.message)}`, 'error');
       }
     });
 
