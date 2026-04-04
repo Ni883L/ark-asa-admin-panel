@@ -47,7 +47,7 @@ async function getMetrics() {
     const [key, ...rest] = line.split('=');
     parsed[key] = rest.join('=');
   }
-  parsed.portChecks = String(parsed.portsRaw || '').split(',').filter(Boolean);
+  parsed.portChecks = String(parsed.udpPortsRaw || parsed.portsRaw || '').split(',').filter(Boolean);
   const profile = store.getActiveProfile();
   if (profile?.ports) {
     parsed.configuredPorts = `Game ${profile.ports.game} · Query ${profile.ports.query}${profile.ports.rcon ? ` · RCON ${profile.ports.rcon}` : ''}`;
@@ -55,7 +55,7 @@ async function getMetrics() {
   }
   const recentLog = getRecentLogs(300);
   parsed.readiness = deriveServerReadiness(parsed, recentLog);
-  parsed.displayPorts = parsed.ports || parsed.configuredPorts || 'unknown';
+  parsed.displayPorts = parsed.udpPorts || parsed.ports || parsed.configuredPorts || 'unknown';
   return parsed;
 }
 

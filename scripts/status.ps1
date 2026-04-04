@@ -12,6 +12,8 @@ $crashDetected = 'false'
 $currentRunCrashDetected = 'false'
 $ports = 'unknown'
 $portsRaw = ''
+$udpPorts = 'unknown'
+$udpPortsRaw = ''
 $cpu = 'unknown'
 $memory = 'unknown'
 $disk = 'unknown'
@@ -139,6 +141,17 @@ if ($proc) {
   } catch {
     $portsRaw = ''
   }
+
+  try {
+    $udpEndpoints = Get-NetUDPEndpoint -OwningProcess $proc.Id -ErrorAction SilentlyContinue
+    if ($udpEndpoints) {
+      $udpEntries = @($udpEndpoints | Sort-Object LocalPort | ForEach-Object { "UDP:$($_.LocalPort)" })
+      $udpPortsRaw = ($udpEntries -join ',')
+      $udpPorts = $udpPortsRaw
+    }
+  } catch {
+    $udpPortsRaw = ''
+  }
 }
 
 try {
@@ -194,6 +207,8 @@ Write-Output "memory=$memory"
 Write-Output "disk=$disk"
 Write-Output "ports=$ports"
 Write-Output "portsRaw=$portsRaw"
+Write-Output "udpPorts=$udpPorts"
+Write-Output "udpPortsRaw=$udpPortsRaw"
 Write-Output "mapLoaded=$mapLoaded"
 Write-Output "mapName=$mapName"
 Write-Output "loadedMap=$loadedMap"

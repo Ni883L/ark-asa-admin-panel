@@ -191,11 +191,21 @@ if ($nodeDir) {
   }
 }
 $previousCommit = 'unknown'
+$currentCommit = 'unknown'
+$targetCommit = 'unknown'
 if ($gitCommand -and (Test-Path (Join-Path $InstallPath '.git'))) {
   $previousCommit = (& $gitCommand rev-parse HEAD).Trim()
   & $gitCommand fetch origin
+  $targetCommit = (& $gitCommand rev-parse ("origin/$Branch")).Trim()
   & $gitCommand checkout $Branch
   & $gitCommand pull origin $Branch
+  $currentCommit = (& $gitCommand rev-parse HEAD).Trim()
+  if (-not $currentCommit -or $currentCommit -eq 'unknown') {
+    throw 'Aktueller Git-Commit konnte nach dem Update nicht ermittelt werden.'
+  }
+  if ($targetCommit -ne 'unknown' -and $currentCommit -ne $targetCommit) {
+    throw "Update unvollständig: lokaler HEAD $currentCommit entspricht nicht origin/$Branch $targetCommit"
+  }
 } else {
   if (-not $gitCommand) {
     Write-Warning 'git wurde nicht gefunden. Update erfolgt ueber ZIP-Download.'
@@ -204,11 +214,15 @@ if ($gitCommand -and (Test-Path (Join-Path $InstallPath '.git'))) {
   }
   Install-ProjectFromArchive -RepoUrl $RepoUrl -Branch $Branch -InstallPath $InstallPath
 }
+
+if ($currentCommit -eq 'unknown' -and $gitCommand -and (Test-Path (Join-Path $InstallPath '.git'))) {
+  $currentCommit = (& $gitCommand rev-parse HEAD).Trim()
+}
 if (-not $npmCommand) {
   throw 'npm wurde nicht gefunden. Bitte Node.js installieren oder PATH aktualisieren.'
 }
 & $npmCommand install --omit=dev --no-audit --no-fund
-Write-Output "update complete from $previousCommit"
+Write-Output "update complete from $previousCommit to $currentCommit"
 Write-Output "minimal backup created: $backup"
 
 try {
