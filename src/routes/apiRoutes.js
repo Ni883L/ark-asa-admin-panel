@@ -39,7 +39,7 @@ function readPanelEnv() {
 function writePanelEnv(updates = {}) {
   const existing = readPanelEnv();
   const merged = { ...existing, ...updates };
-  const order = ['HOST', 'PORT', 'HTTPS_ENABLED', 'HTTPS_CERT_PATH', 'HTTPS_KEY_PATH'];
+  const order = ['HOST', 'PORT', 'HTTPS_ENABLED', 'HTTPS_CERT_PATH', 'HTTPS_KEY_PATH', 'ASA_SERVER_SERVICE_NAME'];
   const keys = Array.from(new Set([...order, ...Object.keys(merged)]));
   const content = keys
     .filter((key) => merged[key] !== undefined && merged[key] !== null && String(merged[key]).length > 0)

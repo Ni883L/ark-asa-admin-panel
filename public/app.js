@@ -306,8 +306,8 @@ const Renderers = {
 
     const panelEnabled = !!(panelAutostart?.result?.enabled || panelAutostart?.result?.exists);
     const panelState = panelAutostart?.result?.status || panelAutostart?.result?.state || (panelEnabled ? 'Installed' : 'Not installed');
-    const asaEnabled = !!asaAutostart?.result?.autoStartEnabled;
-    const asaState = asaAutostart?.result?.serviceName || (asaEnabled ? 'Configured' : 'Not configured');
+    const asaEnabled = !!(asaAutostart?.result?.autoStartEnabled || asaAutostart?.result?.exists);
+    const asaState = asaAutostart?.result?.status || asaAutostart?.result?.serviceName || (asaEnabled ? 'Installed' : 'Not installed');
 
     cards.innerHTML = [
       { title: 'Panel-Dienst', text: panelEnabled ? `Aktiv · ${panelState}` : `Nicht aktiv · ${panelState}` },

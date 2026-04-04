@@ -260,14 +260,16 @@ async function setPanelAutostart(enabled) {
 }
 
 async function getAsaAutostartStatus() {
-  const result = await powershell.run('asa-autostart.ps1', ['-Mode', 'Status']);
+  const result = await powershell.run('asa-service.ps1', ['-Mode', 'Status']);
   return JSON.parse(result.stdout || '{}');
 }
 
 async function setAsaAutostart(enabled) {
-  const mode = enabled ? 'Enable' : 'Disable';
-  const result = await powershell.run('asa-autostart.ps1', ['-Mode', mode]);
-  logger.audit('system', 'asa-autostart', { enabled: !!enabled });
+  const profile = store.getActiveProfile();
+  const command = getProfileCommand(profile).replace(/^"[^"]+"\s*/, '');
+  const mode = enabled ? 'Install' : 'Uninstall';
+  const result = await powershell.run('asa-service.ps1', ['-Mode', mode, '-CommandLine', command]);
+  logger.audit('system', 'asa-autostart', { enabled: !!enabled, type: 'service', command, ports: profile?.ports });
   return JSON.parse(result.stdout || '{}');
 }
 
