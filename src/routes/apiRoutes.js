@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const multer = require('multer');
 const defaults = require('../config/defaults');
 const authService = require('../services/authService');
 const store = require('../services/store');
@@ -24,6 +25,7 @@ const { ValidationError } = require('../util/errors');
 
 const router = express.Router();
 const envFilePath = path.resolve(process.cwd(), '.env');
+const upload = multer({ dest: defaults.paths.tempDir, limits: { fileSize: 1024 * 1024 * 1024 } });
 
 function readPanelEnv() {
   const map = {};
@@ -282,6 +284,21 @@ router.get('/backups/download/:name', handleRoute(async (req, res) => {
   authService.requireRole(req, ['admin']);
   const resolved = backupService.resolveBackupFile(req.params.name);
   res.download(resolved.file, resolved.name);
+}));
+
+router.post('/backups/import', upload.single('backup'), handleRoute(async (req, res) => {
+  authService.requireRole(req, ['admin']);
+  if (!req.file) throw new ValidationError('Keine ZIP-Datei hochgeladen.', 'BACKUP_UPLOAD_MISSING');
+  const imported = backupService.importBackup(req.file.path, req.file.originalname);
+  const validation = await backupService.validateBackup(imported.name);
+  res.json({ ok: true, imported, validation });
+}));
+
+router.get('/backups/export-savegame', handleRoute(async (req, res) => {
+  authService.requireRole(req, ['admin']);
+  const exported = backupService.exportSavegameBundle();
+  await require('child_process').execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', `Compress-Archive -Path '${exported.sourcePath.replace(/'/g, "''")}\\*' -DestinationPath '${exported.exportFile.replace(/'/g, "''")}' -Force`], { windowsHide: true });
+  res.download(exported.exportFile, exported.exportName);
 }));
 
 router.get('/logs', handleRoute(async (req, res) => {

@@ -413,9 +413,9 @@ const Actions = {
   }
 };
 window.restoreBackup = (name) => Actions.restoreBackup(name);
-window.downloadBackup = async (name) => {
+async function downloadFile(url, name, successMessage) {
   try {
-    const response = await fetch(`/api/backups/download/${encodeURIComponent(name)}`, {
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'same-origin'
     });
@@ -438,10 +438,18 @@ window.downloadBackup = async (name) => {
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
-    UI.setFeedback(`Backup ${name} wird heruntergeladen.`, 'success');
+    UI.setFeedback(successMessage || `${name} wird heruntergeladen.`, 'success');
   } catch (error) {
-    UI.setFeedback(`Backup-Download fehlgeschlagen: ${error.message}`, 'error');
+    UI.setFeedback(`Download fehlgeschlagen: ${error.message}`, 'error');
   }
+}
+
+window.downloadBackup = async (name) => {
+  await downloadFile(`/api/backups/download/${encodeURIComponent(name)}`, name, `Backup ${name} wird heruntergeladen.`);
+};
+
+window.exportSavegame = async () => {
+  await downloadFile('/api/backups/export-savegame', 'savegame-export.zip', 'Savegame-Export wird heruntergeladen.');
 };
 
 const App = {
@@ -750,6 +758,34 @@ const App = {
       } catch (error) {
         UI.setFeedback(error.message, 'error');
       }
+    });
+
+    document.getElementById('uploadBackupBtn')?.addEventListener('click', async () => {
+      const input = document.getElementById('backupUploadInput');
+      const file = input?.files?.[0];
+      if (!file) {
+        UI.setFeedback('Bitte zuerst eine ZIP-Datei auswählen.', 'error');
+        return;
+      }
+      try {
+        const formData = new FormData();
+        formData.append('backup', file);
+        const response = await fetch('/api/backups/import', {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin'
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+        UI.setFeedback(`ZIP ${data.imported?.name || file.name} importiert.`, 'success');
+        await App.refreshDashboard();
+      } catch (error) {
+        UI.setFeedback(`ZIP-Import fehlgeschlagen: ${error.message}`, 'error');
+      }
+    });
+
+    document.getElementById('exportSavegameBtn')?.addEventListener('click', async () => {
+      await window.exportSavegame();
     });
 
     document.getElementById('saveTasksBtn')?.addEventListener('click', async () => {

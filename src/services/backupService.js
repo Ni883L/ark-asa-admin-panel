@@ -95,11 +95,24 @@ function importBackup(tempFilePath, originalName) {
   return { name: safeName, file: destination };
 }
 
+function exportSavegameBundle() {
+  fs.mkdirSync(defaults.paths.tempDir, { recursive: true });
+  fs.mkdirSync(defaults.paths.backupDir, { recursive: true });
+  const exportName = `savegame-export-${Date.now()}.zip`;
+  const exportFile = path.join(defaults.paths.backupDir, exportName);
+  const sourcePath = defaults.asa.savedArksPath;
+  if (!sourcePath || !fs.existsSync(sourcePath)) {
+    throw new ValidationError('SavedArks-Pfad nicht gefunden.', 'SAVEGAME_SOURCE_MISSING');
+  }
+  return { exportName, exportFile, sourcePath };
+}
+
 module.exports = {
   listBackups,
   createBackup,
   restoreBackup,
   importBackup,
+  exportSavegameBundle,
   validateBackup,
   parseValidationOutput,
   resolveBackupFile,
