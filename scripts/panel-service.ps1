@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('Status', 'Install', 'Uninstall', 'Start', 'Stop', 'Restart', 'ElevateInstall', 'ElevateUninstall')]
+  [ValidateSet('Status', 'Install', 'Uninstall', 'Start', 'Stop', 'Restart')]
   [string]$Mode = 'Status',
   [string]$ServiceName = 'ArkAsaAdminPanel',
   [string]$DisplayName = 'ARK ASA Admin Panel',
@@ -41,44 +41,48 @@ function Get-ServiceInfo {
   }
 }
 
-function Invoke-ScChecked([string]$ArgumentsLine) {
-  $output = & cmd.exe /c "sc.exe $ArgumentsLine" 2>&1
-  $exitCode = $LASTEXITCODE
-  return @{ output = ($output | Out-String).Trim(); exitCode = $exitCode }
+function Get-WinswFiles {
+  $baseDir = Join-Path $InstallPath 'runtime\service-wrapper'
+  $exePath = Join-Path $baseDir 'ArkAsaAdminPanelService.exe'
+  $xmlPath = Join-Path $baseDir 'ArkAsaAdminPanelService.xml'
+  return @{ baseDir = $baseDir; exePath = $exePath; xmlPath = $xmlPath }
 }
 
-function New-ServiceChecked([string]$Name, [string]$BinaryPath, [string]$Label) {
-  $output = & powershell -NoProfile -ExecutionPolicy Bypass -Command "New-Service -Name '$Name' -BinaryPathName '$BinaryPath' -DisplayName '$Label' -StartupType Automatic" 2>&1
-  $exitCode = $LASTEXITCODE
-  return @{ output = ($output | Out-String).Trim(); exitCode = $exitCode }
+function Ensure-WinswStub {
+  $files = Get-WinswFiles
+  New-Item -ItemType Directory -Force -Path $files.baseDir | Out-Null
+  if (-not (Test-Path $files.exePath)) {
+    Copy-Item -Path "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -Destination $files.exePath -Force
+  }
+  return $files
+}
+
+function Write-WinswConfig([string]$nodePath, [string]$serverScript) {
+  $files = Ensure-WinswStub
+  $logDir = Join-Path $InstallPath 'runtime\logs'
+  New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+  $xml = @"
+<service>
+  <id>$ServiceName</id>
+  <name>$DisplayName</name>
+  <description>ARK ASA Admin Panel Windows Service</description>
+  <executable>$nodePath</executable>
+  <arguments>$serverScript</arguments>
+  <workingdirectory>$InstallPath</workingdirectory>
+  <logpath>$logDir</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+  <stoptimeout>15sec</stoptimeout>
+</service>
+"@
+  Set-Content -Path $files.xmlPath -Value $xml -Encoding UTF8
+  return $files
 }
 
 if ($Mode -eq 'Status') {
   Write-Output (Get-ServiceInfo | ConvertTo-Json -Compress)
-  exit 0
-}
-
-if ($Mode -in @('ElevateInstall', 'ElevateUninstall')) {
-  $targetMode = if ($Mode -eq 'ElevateInstall') { 'Install' } else { 'Uninstall' }
-  $scriptPath = $MyInvocation.MyCommand.Path
-  $arguments = @(
-    '-NoProfile',
-    '-ExecutionPolicy', 'Bypass',
-    '-File', ('"' + $scriptPath + '"'),
-    '-Mode', $targetMode,
-    '-ServiceName', ('"' + $ServiceName + '"'),
-    '-DisplayName', ('"' + $DisplayName + '"'),
-    '-InstallPath', ('"' + $InstallPath + '"')
-  ) -join ' '
-  Start-Process -Verb RunAs -FilePath 'powershell.exe' -ArgumentList $arguments | Out-Null
-  Write-Output (@{
-    ok = $true
-    elevated = $true
-    launched = $true
-    mode = $targetMode
-    serviceName = $ServiceName
-    installPath = $InstallPath
-  } | ConvertTo-Json -Compress)
   exit 0
 }
 
@@ -96,26 +100,27 @@ if ($Mode -eq 'Install') {
   $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   if ($existing) {
     try { Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue } catch {}
-    $deleteResult = Invoke-ScChecked "delete `"$ServiceName`""
-    Start-Sleep -Seconds 2
   }
-  $binaryPath = '"' + $nodePath + '" "' + $serverScript + '"'
-  $createResult = New-ServiceChecked -Name $ServiceName -BinaryPath $binaryPath -Label $DisplayName
+  $files = Write-WinswConfig -nodePath $nodePath -serverScript $serverScript
+  & $files.exePath install | Out-Null
+  Start-Sleep -Seconds 2
   $serviceInfo = Get-ServiceInfo
   if (-not $serviceInfo.exists) {
-    throw "Panel-Dienst konnte nicht erstellt werden. New-Service: $($createResult.output)"
+    throw 'Panel-Dienst konnte über den Service-Wrapper nicht erstellt werden.'
   }
-  $descriptionResult = Invoke-ScChecked "description `"$ServiceName`" `"ARK ASA Admin Panel Node service`""
   Start-Service -Name $ServiceName -ErrorAction Stop
   Write-Output (Get-ServiceInfo | ConvertTo-Json -Compress)
   exit 0
 }
 
 if ($Mode -eq 'Uninstall') {
+  $files = Get-WinswFiles
   $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   if ($existing) {
     try { Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue } catch {}
-    & sc.exe delete $ServiceName | Out-Null
+  }
+  if (Test-Path $files.exePath) {
+    & $files.exePath uninstall | Out-Null
   }
   Write-Output (Get-ServiceInfo | ConvertTo-Json -Compress)
   exit 0
