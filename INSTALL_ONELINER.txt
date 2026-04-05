@@ -1,3 +1,5 @@
+WICHTIG: Installation immer in einer PowerShell als Administrator starten.
+
 powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([ScriptBlock]::Create((iwr 'https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1' -UseBasicParsing).Content))"
 
 Bestehende Host-Installation aktualisieren und Panel neu starten:

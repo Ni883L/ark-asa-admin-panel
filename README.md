@@ -86,6 +86,8 @@ ark-asa-admin/
 ## Installation
 
 ### Schnellstart lokal
+> Fuer Installation und erste Einrichtung am besten **PowerShell als Administrator** verwenden.
+
 ```powershell
 cd ark-asa-admin
 copy .env.example .env
@@ -114,6 +116,8 @@ Der gleiche Oneliner liegt auch in `INSTALL_ONELINER.txt`.
 
 
 > Falls weiterhin die Meldung `Fehlende Abhaengigkeiten: Git, Node.js, npm` erscheint, laeuft sehr wahrscheinlich noch eine alte Installer-Version. Die aktuelle Version wird beim Start als `Installer-Version: ...` ausgegeben.
+
+Wichtig: Installation und Dienstregistrierung immer in einer **Admin-PowerShell** starten. Die normale WebGUI-Nutzung danach kann wieder ohne Admin erfolgen.
 
 Hinweis: Das Install-Skript
 - fragt vor der Installation, ob statt des Standardpfads `C:\ark-asa-admin` ein anderer Installationsort verwendet werden soll,
