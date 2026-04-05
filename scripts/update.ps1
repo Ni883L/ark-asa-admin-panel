@@ -211,7 +211,7 @@ if ($gitCommand -and (Test-Path (Join-Path $InstallPath '.git'))) {
   & $gitCommand fetch origin
   $targetCommit = (& $gitCommand rev-parse ("origin/$Branch")).Trim()
   & $gitCommand checkout $Branch
-  & $gitCommand pull origin $Branch
+  & $gitCommand reset --hard ("origin/$Branch")
   $currentCommit = (& $gitCommand rev-parse HEAD).Trim()
   if (-not $currentCommit -or $currentCommit -eq 'unknown') {
     throw 'Aktueller Git-Commit konnte nach dem Update nicht ermittelt werden.'
@@ -235,7 +235,9 @@ if (-not $npmCommand) {
   throw 'npm wurde nicht gefunden. Bitte Node.js installieren oder PATH aktualisieren.'
 }
 & $npmCommand install --omit=dev --no-audit --no-fund
+$packageLockHash = if (Test-Path (Join-Path $InstallPath 'package-lock.json')) { (Get-FileHash (Join-Path $InstallPath 'package-lock.json') -Algorithm SHA256).Hash } else { 'missing' }
 Write-Output "update complete from $previousCommit to $currentCommit"
+Write-Output "package-lock hash: $packageLockHash"
 Write-Output "minimal backup created: $backup"
 
 $panelConnection = Resolve-PanelConnection (Get-EnvSettings (Join-Path $InstallPath '.env'))
@@ -257,6 +259,12 @@ try {
 
   if (-not (Test-PanelReachable -Url $panelConnection.Url -TimeoutSeconds 25)) {
     throw "Panel nach Update nicht erreichbar: $($panelConnection.Url)"
+  }
+  try {
+    $runtimeCommit = (& $gitCommand -C $InstallPath rev-parse --short HEAD).Trim()
+    Write-Output "runtime commit verified: $runtimeCommit"
+  } catch {
+    Write-Warning "runtime commit verification skipped: $($_.Exception.Message)"
   }
   Write-Output "panel restart completed"
 } catch {
