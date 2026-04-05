@@ -787,7 +787,7 @@ const App = {
     bindServiceAction('panelServiceStartBtn', '/api/actions/panel-service-action', 'Start', 'Panel-Dienst starten');
     bindServiceAction('panelServiceStopBtn', '/api/actions/panel-service-action', 'Stop', 'Panel-Dienst stoppen');
     bindServiceAction('panelServiceRestartBtn', '/api/actions/panel-service-action', 'Restart', 'Panel-Dienst neu starten');
-    bindServiceAction('asaServiceInstallBtn', '/api/actions/asa-service-register', 'Install', 'ARK ASA Dienst registrieren');
+    bindServiceAction('asaServiceInstallBtn', '/api/actions/asa-service-register', 'Install', 'ARK ASA Dienst registrieren (WinSW/UAC)');
     bindServiceAction('asaServiceUninstallBtn', '/api/actions/asa-service-unregister', 'Uninstall', 'ARK ASA Dienst deregistrieren');
     bindServiceAction('asaServiceStartBtn', '/api/actions/asa-service-action', 'Start', 'ARK ASA Dienst starten');
     bindServiceAction('asaServiceStopBtn', '/api/actions/asa-service-action', 'Stop', 'ARK ASA Dienst stoppen');

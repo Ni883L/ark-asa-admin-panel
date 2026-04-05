@@ -296,12 +296,17 @@ async function runPanelServiceAction(action) {
 async function runAsaServiceAction(action) {
   const profile = store.getActiveProfile();
   const command = getProfileCommand(profile).replace(/^"[^"]+"\s*/, '');
-  const elevatedActions = new Set(['Install', 'Uninstall', 'ElevateInstall', 'ElevateUninstall']);
-  const scriptName = elevatedActions.has(action) ? 'asa-service-launcher.ps1' : 'asa-service.ps1';
-  const mode = action === 'Install' ? 'Install' : action === 'Uninstall' ? 'Uninstall' : action;
   const serviceName = process.env.ASA_SERVER_SERVICE_NAME || defaults.asa.serviceName || 'ArkAscendedServer';
   const displayName = 'ARK ASA Server';
-  const result = await powershell.run(scriptName, ['-Mode', mode, '-InstallPath', defaults.asa.root, '-AsaExe', defaults.asa.exePath, '-ServiceName', serviceName, '-DisplayName', displayName, '-CommandLine', command]);
+
+  if (action === 'Install' || action === 'Uninstall') {
+    const result = await powershell.run('asa-service-launcher.ps1', ['-Mode', action, '-InstallPath', defaults.asa.root, '-AsaExe', defaults.asa.exePath, '-ServiceName', serviceName, '-DisplayName', displayName, '-CommandLine', command]);
+    logger.audit('system', 'asa-service-action', { action, mode: 'launcher', serviceName, installPath: defaults.asa.root });
+    return parseJsonSafely(result.stdout, {});
+  }
+
+  const result = await powershell.run('asa-service.ps1', ['-Mode', action, '-InstallPath', defaults.asa.root, '-AsaExe', defaults.asa.exePath, '-ServiceName', serviceName, '-DisplayName', displayName, '-CommandLine', command]);
+  logger.audit('system', 'asa-service-action', { action, mode: 'direct', serviceName, installPath: defaults.asa.root });
   return parseJsonSafely(result.stdout, {});
 }
 
