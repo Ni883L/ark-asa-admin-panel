@@ -233,6 +233,20 @@ router.post('/actions/asa-autostart', handleRoute(async (req, res) => {
   res.json({ ok: true, result: await asaService.setAsaAutostart(enabled) });
 }));
 
+router.post('/actions/panel-service-action', handleRoute(async (req, res) => {
+  authService.requireRole(req, ['admin']);
+  requireSensitiveActionAuth(req);
+  const action = String(req.body?.action || 'Status');
+  res.json({ ok: true, result: await asaService.runPanelServiceAction(action) });
+}));
+
+router.post('/actions/asa-service-action', handleRoute(async (req, res) => {
+  authService.requireRole(req, ['admin']);
+  requireSensitiveActionAuth(req);
+  const action = String(req.body?.action || 'Status');
+  res.json({ ok: true, result: await asaService.runAsaServiceAction(action) });
+}));
+
 router.post('/actions/asa-update-check', handleRoute(async (req, res) => {
   authService.requireRole(req, ['admin']);
   const check = await asaService.checkForServerUpdate();

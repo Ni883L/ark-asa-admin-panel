@@ -317,23 +317,31 @@
                 <div class="card emphasis-card span-2">
                   <h4>Dienst-Übersicht</h4>
                   <div id="serviceStatusCards" class="summary-stack summary-grid"></div>
-                  <div class="actions wrap-actions">
-                    <button id="saveAutostartBtn" type="button">Dienste anwenden</button>
-                    <button id="repairPanelServiceBtn" type="button">Panel-Dienst neu registrieren</button>
-                    <button id="repairAsaServiceBtn" type="button">ARK ASA Dienst neu registrieren</button>
-                  </div>
+                  <div class="summary-item"><strong>Hinweis</strong><div>Dienstverwaltung erfolgt direkt über die Aktionskarten unten.</div></div>
                 </div>
               </div>
               <div class="content-grid two-col practical-grid-wide">
                 <div class="card">
                   <h4>Panel-Dienst</h4>
-                  <label class="checkbox-row"><input id="panelAutostartInput" type="checkbox" /> WinSW-Dienst aktivieren</label>
                   <div id="panelServiceInfo" class="formatted-output compact-output"></div>
+                  <div class="actions wrap-actions">
+                    <button id="panelServiceInstallBtn" type="button">Registrieren</button>
+                    <button id="panelServiceUninstallBtn" type="button">Deregistrieren</button>
+                    <button id="panelServiceStartBtn" type="button">Start</button>
+                    <button id="panelServiceStopBtn" type="button">Stop</button>
+                    <button id="panelServiceRestartBtn" type="button">Restart</button>
+                  </div>
                 </div>
                 <div class="card">
                   <h4>ARK ASA Dienst</h4>
-                  <label class="checkbox-row"><input id="asaAutostartInput" type="checkbox" /> WinSW-Dienst aktivieren</label>
                   <div id="asaServiceInfo" class="formatted-output compact-output"></div>
+                  <div class="actions wrap-actions">
+                    <button id="asaServiceInstallBtn" type="button">Registrieren</button>
+                    <button id="asaServiceUninstallBtn" type="button">Deregistrieren</button>
+                    <button id="asaServiceStartBtn" type="button">Start</button>
+                    <button id="asaServiceStopBtn" type="button">Stop</button>
+                    <button id="asaServiceRestartBtn" type="button">Restart</button>
+                  </div>
                 </div>
               </div>
             </section>

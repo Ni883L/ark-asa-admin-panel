@@ -555,8 +555,7 @@ const App = {
       document.getElementById('panelHttpsKeyInput').value = panelEnvResult.value.httpsKeyPath || '';
     }
 
-    if (panelAutostartResult.status === 'fulfilled') document.getElementById('panelAutostartInput').checked = !!panelAutostartResult.value.result?.enabled;
-    if (asaAutostartResult.status === 'fulfilled') document.getElementById('asaAutostartInput').checked = !!asaAutostartResult.value.result?.autoStartEnabled;
+    // service cards use live status rendering only
 
     Renderers.renderAccessHint(panelEnvResult.status === 'fulfilled' ? panelEnvResult.value : {});
     Renderers.renderSystemSummary(
@@ -758,66 +757,36 @@ const App = {
       }
     });
 
-    document.getElementById('saveAutostartBtn')?.addEventListener('click', async () => {
-      const currentPassword = await Actions.requestSensitivePassword('Autostart ändern');
-      if (Preferences.shouldRequirePassword() && !currentPassword) return;
-      try {
-        const enabled = document.getElementById('panelAutostartInput').checked;
-        const asaEnabled = document.getElementById('asaAutostartInput').checked;
+    const bindServiceAction = (buttonId, endpoint, action, label) => {
+      document.getElementById(buttonId)?.addEventListener('click', async () => {
+        const currentPassword = await Actions.requestSensitivePassword(label);
+        if (Preferences.shouldRequirePassword() && !currentPassword) return;
         try {
-          await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
-          await Api.request('/api/actions/asa-autostart', { method: 'POST', body: JSON.stringify({ enabled: asaEnabled, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
+          await Api.request(endpoint, { method: 'POST', body: JSON.stringify({ action, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
+          UI.setFeedback(`${label} ausgelöst.`, 'info');
+          setTimeout(() => window.location.reload(), 6000);
         } catch (error) {
           const message = String(error.message || '');
           if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
-            UI.setFeedback('Dienste werden eingerichtet. Verbindung wird neu aufgebaut...', 'info');
+            UI.setFeedback(`${label} ausgelöst. Verbindung wird neu aufgebaut...`, 'info');
             setTimeout(() => window.location.reload(), 6000);
             return;
           }
-          throw error;
+          UI.setFeedback(error.message, 'error');
         }
-        UI.setFeedback('WinSW-Dienst-Registrierung läuft. Seite wird danach neu verbunden...', 'info');
-        setTimeout(() => window.location.reload(), 8000);
-      } catch (error) {
-        UI.setFeedback(error.message, 'error');
-      }
-    });
+      });
+    };
 
-    document.getElementById('repairPanelServiceBtn')?.addEventListener('click', async () => {
-      const currentPassword = await Actions.requestSensitivePassword('Panel-Dienst neu registrieren');
-      if (Preferences.shouldRequirePassword() && !currentPassword) return;
-      try {
-        await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
-        UI.setFeedback('Panel-WinSW-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
-        setTimeout(() => window.location.reload(), 8000);
-      } catch (error) {
-        const message = String(error.message || '');
-        if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
-          UI.setFeedback('Panel-WinSW-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
-          setTimeout(() => window.location.reload(), 8000);
-          return;
-        }
-        UI.setFeedback(error.message, 'error');
-      }
-    });
-
-    document.getElementById('repairAsaServiceBtn')?.addEventListener('click', async () => {
-      const currentPassword = await Actions.requestSensitivePassword('ARK ASA Dienst neu registrieren');
-      if (Preferences.shouldRequirePassword() && !currentPassword) return;
-      try {
-        await Api.request('/api/actions/asa-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
-        UI.setFeedback('ARK ASA WinSW-Dienst wird neu registriert.', 'info');
-        setTimeout(() => window.location.reload(), 8000);
-      } catch (error) {
-        const message = String(error.message || '');
-        if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
-          UI.setFeedback('ARK ASA WinSW-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
-          setTimeout(() => window.location.reload(), 8000);
-          return;
-        }
-        UI.setFeedback(error.message, 'error');
-      }
-    });
+    bindServiceAction('panelServiceInstallBtn', '/api/actions/panel-service-action', 'Install', 'Panel-Dienst registrieren');
+    bindServiceAction('panelServiceUninstallBtn', '/api/actions/panel-service-action', 'Uninstall', 'Panel-Dienst deregistrieren');
+    bindServiceAction('panelServiceStartBtn', '/api/actions/panel-service-action', 'Start', 'Panel-Dienst starten');
+    bindServiceAction('panelServiceStopBtn', '/api/actions/panel-service-action', 'Stop', 'Panel-Dienst stoppen');
+    bindServiceAction('panelServiceRestartBtn', '/api/actions/panel-service-action', 'Restart', 'Panel-Dienst neu starten');
+    bindServiceAction('asaServiceInstallBtn', '/api/actions/asa-service-action', 'ElevateInstall', 'ARK ASA Dienst registrieren');
+    bindServiceAction('asaServiceUninstallBtn', '/api/actions/asa-service-action', 'ElevateUninstall', 'ARK ASA Dienst deregistrieren');
+    bindServiceAction('asaServiceStartBtn', '/api/actions/asa-service-action', 'Start', 'ARK ASA Dienst starten');
+    bindServiceAction('asaServiceStopBtn', '/api/actions/asa-service-action', 'Stop', 'ARK ASA Dienst stoppen');
+    bindServiceAction('asaServiceRestartBtn', '/api/actions/asa-service-action', 'Restart', 'ARK ASA Dienst neu starten');
 
     document.getElementById('uploadBackupBtn')?.addEventListener('click', async () => {
       const input = document.getElementById('backupUploadInput');

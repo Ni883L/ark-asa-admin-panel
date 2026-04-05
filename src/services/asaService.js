@@ -280,6 +280,18 @@ async function setAsaAutostart(enabled) {
   }
 }
 
+async function runPanelServiceAction(action) {
+  const result = await powershell.run('panel-service-launcher.ps1', ['-Mode', action, '-InstallPath', process.cwd()]);
+  return parseJsonSafely(result.stdout, {});
+}
+
+async function runAsaServiceAction(action) {
+  const profile = store.getActiveProfile();
+  const command = getProfileCommand(profile).replace(/^"[^"]+"\s*/, '');
+  const result = await powershell.run('asa-service.ps1', ['-Mode', action, '-InstallPath', defaults.asa.root, '-AsaExe', defaults.asa.exePath, '-CommandLine', command]);
+  return parseJsonSafely(result.stdout, {});
+}
+
 module.exports = {
   getProfileSummary,
   saveProfiles,
@@ -301,5 +313,7 @@ module.exports = {
   setPanelAutostart,
   getAsaAutostartStatus,
   setAsaAutostart,
+  runPanelServiceAction,
+  runAsaServiceAction,
   getProfileCommand
 };
