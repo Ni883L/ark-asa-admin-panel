@@ -45,7 +45,7 @@ Produktionsnahe Web-Adminverwaltung für **ARK: Survival Ascended Dedicated Serv
 ### Technische Grenzen / dokumentierte Alternativen
 - **Spielerliste:** primär über Log-Parsing und optionale RCON-Erweiterung. Falls ASA bestimmte Live-Daten nicht direkt anbietet, wird die letzte sinnvolle Information angezeigt.
 - **Live-Konsole:** aktuell als Polling-Logansicht statt echter WebSocket-Konsole, um Abhängigkeiten gering zu halten.
-- **Windows-Dienstbetrieb:** vorbereitet; Start als geplanter Task oder NSSM-/Service-Wrap empfohlen.
+- **Windows-Dienstbetrieb:** Panel und ARK ASA können über WinSW als echte Windows-Dienste betrieben werden.
 
 ## Projektstruktur
 
@@ -67,7 +67,9 @@ ark-asa-admin/
 │   ├── status.ps1
 │   ├── backup-create.ps1
 │   ├── backup-restore.ps1
-│   └── panel-service-install.ps1
+│   ├── panel-service.ps1
+│   ├── panel-service-launcher.ps1
+│   └── asa-service.ps1
 ├── src/
 │   ├── config/
 │   ├── middleware/
@@ -103,6 +105,11 @@ iwr https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/in
 .\install.ps1 -InstallPath 'C:\ark-asa-admin' -Branch 'main' -CreateStartupTask
 ```
 
+Empfohlener Host-Oneliner fuer bestehende Installationen:
+```powershell
+cd C:\ark-asa-admin; git pull; cmd /c npm install; powershell -NoProfile -ExecutionPolicy Bypass -File C:\ark-asa-admin\scripts\panel-restart.ps1 -InstallPath C:\ark-asa-admin -Port 3000
+```
+
 Der gleiche Oneliner liegt auch in `INSTALL_ONELINER.txt`.
 
 
@@ -115,7 +122,7 @@ Hinweis: Das Install-Skript
 - prueft `node` und `npm`, bietet bei fehlenden Abhaengigkeiten einen kurzen Dialog zur automatischen Installation per `winget` und startet den Installer bei Bedarf automatisch in einem neuen Terminal neu (kein manueller Terminal-Neustart noetig),
 - nutzt Git, wenn vorhanden (schnelleres Sync/Update), kann bei Erstinstallation aber auch ohne Git ueber ZIP-Download installieren,
 - installiert nur die produktiven Node-Abhaengigkeiten (`npm install --omit=dev`),
-- kann beim Setup direkt einen dauerhaften Windows-Autostart-Task für das Panel registrieren und starten und
+- kann beim Setup direkt eine dauerhafte WinSW-Dienstregistrierung für das Panel anstoßen und
 - bietet am Ende den direkten Start des Panels an (mit Erreichbarkeitscheck auf `127.0.0.1`) und
 - gibt nach der Installation den Startbefehl sowie die Konfigurations-Website basierend auf `.env` aus (Schema/Host/Port aus `HTTPS_ENABLED`, `HOST`, `PORT`; erster Start ueber `/setup`).
 - enthaelt einen Guard gegen reservierte PowerShell-Variablennamen (z. B. `Host`), damit entsprechende Script-Versionen fruehzeitig mit klarer Meldung abgebrochen werden.
@@ -133,7 +140,7 @@ Hinweis: Das Install-Skript
 4. Fuer Remote-Zugriff in `.env` `HOST=0.0.0.0` setzen und Firewall-Port freigeben.
 
 ## One-Click-Installer
-Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeichnisse, erzeugt eine `.env` und kann optional einen Windows-Starttask anlegen. Bei Abschluss der Ersteinrichtung wird SteamCMD geprüft und bei Bedarf automatisch installiert.
+Der Installer klont das Repo, installiert Node-Abhängigkeiten, erstellt Verzeichnisse, erzeugt eine `.env` und kann optional die WinSW-Dienstregistrierung für das Panel anstoßen. Bei Abschluss der Ersteinrichtung wird SteamCMD geprüft und bei Bedarf automatisch installiert.
 
 
 ### Update-Skript
@@ -153,11 +160,16 @@ Minimal-Backup-Inhalt: `.env`, `.env.example`, `package.json`, `package-lock.jso
 
 Hinweis: Wenn `git` oder der `.git`-Ordner fehlt, faellt `update.ps1` automatisch auf ZIP-Download vom Repository zurueck.
 
-Wenn `update.ps1` oder `panel-service-install.ps1` aus dem Installationsordner aufgerufen werden, wird dieser Pfad standardmaessig automatisch verwendet (kein fester Hardcode auf `C:\...`).
+Wenn `update.ps1`, `panel-service.ps1` oder `asa-service.ps1` aus dem Installationsordner aufgerufen werden, wird dieser Pfad standardmaessig automatisch verwendet (kein fester Hardcode auf `C:\...`).
 
-Falls `panel-autostart.ps1 -Mode Enable` mit `Zugriff verweigert` scheitert, starte stattdessen eine Admin-PowerShell über:
+Panel-Dienst manuell als WinSW-Dienst installieren:
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\panel-autostart.ps1 -Mode ElevateEnable -InstallPath 'C:\ark-asa-admin'
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\panel-service.ps1 -Mode Install -InstallPath 'C:\ark-asa-admin'
+```
+
+ARK ASA Dienst manuell als WinSW-Dienst installieren:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\asa-service.ps1 -Mode Install -ServiceName 'ArkAscendedServer' -DisplayName 'ARK ASA Server' -InstallPath 'C:\ARK\ASA' -AsaExe 'C:\ARK\ASA\ShooterGame\Binaries\Win64\ArkAscendedServer.exe' -CommandLine 'TheIsland_WP?listen?SessionName=ASA Server?Port=7778?QueryPort=27016?RCONPort=27021?ServerPassword=08150815?ServerAdminPassword=081508150815'
 ```
 
 ## Update-Strategie
@@ -166,7 +178,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\panel-autostart.ps
 - Vor Update wird ein minimales Panel-Backup erstellt
 - `git fetch` + `git pull` (oder ZIP-Fallback, falls Git fehlt)
 - `npm install --omit=dev --no-audit --no-fund`
-- nach Panel-Update wird der Webdienst/Task kontrolliert neu gestartet und der Port auf Erreichbarkeit geprüft
+- nach Panel-Update wird der Webdienst kontrolliert neu gestartet und der Port auf Erreichbarkeit geprüft
 - bei Fehlern kann auf das letzte Backup zurückgerollt werden
 
 ### ASA-Server

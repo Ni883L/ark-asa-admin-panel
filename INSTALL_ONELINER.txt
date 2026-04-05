@@ -1,2 +1,10 @@
 powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([ScriptBlock]::Create((iwr 'https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1' -UseBasicParsing).Content))"
-# Optional mit Parametern lokal ausführen: .\install.ps1 -InstallPath 'C:\ark-asa-admin' -Branch 'main' -CreateStartupTask
+
+Bestehende Host-Installation aktualisieren und Panel neu starten:
+cd C:\ark-asa-admin; git pull; cmd /c npm install; powershell -NoProfile -ExecutionPolicy Bypass -File C:\ark-asa-admin\scripts\panel-restart.ps1 -InstallPath C:\ark-asa-admin -Port 3000
+
+Panel als WinSW-Dienst installieren:
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\ark-asa-admin\scripts\panel-service.ps1 -Mode Install -InstallPath C:\ark-asa-admin
+
+ARK ASA als WinSW-Dienst installieren:
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\ark-asa-admin\scripts\asa-service.ps1 -Mode Install -ServiceName ArkAscendedServer -DisplayName "ARK ASA Server" -InstallPath C:\ARK\ASA -AsaExe C:\ARK\ASA\ShooterGame\Binaries\Win64\ArkAscendedServer.exe -CommandLine "TheIsland_WP?listen?SessionName=ASA Server?Port=7778?QueryPort=27016?RCONPort=27021?ServerPassword=08150815?ServerAdminPassword=081508150815"
