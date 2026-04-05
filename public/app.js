@@ -599,7 +599,7 @@ const App = {
     const buildInfo = document.getElementById('buildInfo');
     if (buildInfo) {
       buildInfo.textContent = `v${bootstrapState.version || '?'} · ${bootstrapState.gitCommit || 'unknown'}`;
-      buildInfo.title = `Version ${bootstrapState.version || '?'} / Commit ${bootstrapState.gitCommit || 'unknown'}`;
+      buildInfo.title = `Version ${bootstrapState.version || '?'} / Commit ${bootstrapState.gitCommit || 'unknown'} / Pfad ${bootstrapState.livePath || 'unknown'}`;
     }
     await App.refreshDashboard();
   },

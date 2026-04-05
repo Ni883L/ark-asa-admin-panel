@@ -272,5 +272,6 @@ try {
 }
 
 Write-Output "Install location: $InstallPath"
+Write-Output "Active update path verified: $InstallPath"
 Write-Output "Start panel with: cd '$InstallPath' ; npm start"
 Write-Output "Configuration website: $($panelConnection.Url)"

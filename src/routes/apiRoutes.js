@@ -77,6 +77,7 @@ router.use((req, res, next) => {
 
 router.get('/bootstrap', handleRoute(async (_req, res) => {
   const wizard = setupService.getWizardState();
+  const livePath = process.cwd();
   const localIps = Object.values(os.networkInterfaces())
     .flat()
     .filter((entry) => entry && entry.family === 'IPv4' && !entry.internal)
@@ -91,6 +92,7 @@ router.get('/bootstrap', handleRoute(async (_req, res) => {
     host: os.hostname(),
     version: require('../../package.json').version,
     gitCommit,
+    livePath,
     appBinding: {
       host: defaults.app.host,
       port: defaults.app.port,
