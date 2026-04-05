@@ -900,7 +900,7 @@ const App = {
                 } catch (error) {
                   const message = String(error.message || '');
                   if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
-                    UI.setFeedback('Panel-Update läuft. Verbindung wird neu aufgebaut...', 'info');
+                    UI.setFeedback('Panel-Update läuft. Neuer Stand wird übernommen und Verbindung wird neu aufgebaut...', 'info');
                     setTimeout(() => window.location.reload(), 5000);
                     return;
                   }

@@ -218,11 +218,19 @@ async function selfUpdate() {
 
 async function updateAndRestartPanel() {
   const result = await powershell.run('panel-update-launcher.ps1', ['-InstallPath', process.cwd(), '-Branch', 'main']);
-  logger.audit('system', 'panel-update-launcher', { port: defaults.app.port });
+  logger.audit('system', 'panel-update-launcher', { port: defaults.app.port, installPath: process.cwd(), mode: 'winsw-aware' });
   return result;
 }
 
 async function restartPanelService() {
+  try {
+    const serviceStatus = await getPanelAutostartStatus();
+    if (serviceStatus?.exists) {
+      const result = await powershell.run('panel-service.ps1', ['-Mode', 'Restart', '-InstallPath', process.cwd()]);
+      logger.audit('system', 'panel-restart-service', { port: defaults.app.port, mode: 'winsw-service' });
+      return result;
+    }
+  } catch (_error) {}
   const result = await powershell.run('panel-restart.ps1', ['-Port', String(defaults.app.port)]);
   logger.audit('system', 'panel-restart-service', { port: defaults.app.port, mode: 'detached-node' });
   return result;

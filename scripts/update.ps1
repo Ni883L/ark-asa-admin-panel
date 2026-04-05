@@ -246,7 +246,11 @@ try {
   } catch {}
 
   if ($panelServiceStatus.exists) {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-service.ps1') -Mode Restart -InstallPath $InstallPath | Out-Null
+    $restartResult = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-service.ps1') -Mode Restart -InstallPath $InstallPath
+    $verifiedService = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-service.ps1') -Mode Status -InstallPath $InstallPath | ConvertFrom-Json
+    if (-not $verifiedService.exists) {
+      throw 'Panel-WinSW-Dienst ist nach dem Update nicht mehr vorhanden.'
+    }
   } else {
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-restart.ps1') -InstallPath $InstallPath -Port 3000 | Out-Null
   }
