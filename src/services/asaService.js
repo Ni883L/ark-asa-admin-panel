@@ -223,18 +223,8 @@ async function updateAndRestartPanel() {
 }
 
 async function restartPanelService() {
-  try {
-    const serviceStatus = JSON.parse((await powershell.run('panel-service.ps1', ['-Mode', 'Status', '-InstallPath', process.cwd()])).stdout || '{}');
-    if (serviceStatus.exists) {
-      const result = await powershell.run('panel-service.ps1', ['-Mode', 'Restart', '-InstallPath', process.cwd()]);
-      logger.audit('system', 'panel-restart-service', { port: defaults.app.port, mode: 'service' });
-      return result;
-    }
-  } catch (_error) {
-    // fallback below
-  }
   const result = await powershell.run('panel-restart.ps1', ['-Port', String(defaults.app.port)]);
-  logger.audit('system', 'panel-restart-service', { port: defaults.app.port, mode: 'legacy-task' });
+  logger.audit('system', 'panel-restart-service', { port: defaults.app.port, mode: 'detached-node' });
   return result;
 }
 
@@ -249,23 +239,18 @@ async function openPanelFirewall(port) {
 }
 
 async function getPanelAutostartStatus() {
-  try {
-    const result = await powershell.run('panel-service.ps1', ['-Mode', 'Status', '-InstallPath', process.cwd()]);
-    return parseJsonSafely(result.stdout, {});
-  } catch (error) {
-    throw normalizeScriptError(error, 'Panel-Dienststatus konnte nicht gelesen werden.');
-  }
+  return {
+    ok: true,
+    exists: false,
+    enabled: false,
+    status: 'Nicht unterstützt',
+    serviceName: '',
+    type: 'detached-node'
+  };
 }
 
-async function setPanelAutostart(enabled) {
-  try {
-    const mode = enabled ? 'Install' : 'Uninstall';
-    const result = await powershell.run('panel-service-launcher.ps1', ['-Mode', mode, '-InstallPath', process.cwd()]);
-    logger.audit('system', 'panel-autostart', { enabled: !!enabled, type: 'service', elevated: true, externalLauncher: true });
-    return parseJsonSafely(result.stdout, {});
-  } catch (error) {
-    throw normalizeScriptError(error, 'Panel-Dienst konnte nicht geändert werden.');
-  }
+async function setPanelAutostart(_enabled) {
+  throw new Error('Panel-Windows-Dienst ist derzeit deaktiviert. Bitte Panel manuell per panel-restart starten.');
 }
 
 async function getAsaAutostartStatus() {
