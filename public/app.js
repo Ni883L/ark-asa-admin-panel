@@ -290,11 +290,11 @@ const Renderers = {
       },
       {
         title: 'Panel-Dienst',
-        text: panelEnabled ? 'Aktiv' : 'Nicht aktiv'
+        text: panelEnabled ? `Aktiv · ${panelAutostart?.result?.status || 'Running'}` : 'Nicht aktiv'
       },
       {
         title: 'ASA-Dienst',
-        text: asaEnabled ? 'Aktiv' : 'Nicht aktiv'
+        text: asaEnabled ? `Aktiv · ${asaAutostart?.result?.status || 'Running'}` : 'Nicht aktiv'
       }
     ];
     target.innerHTML = items.map((item) => `<div class="system-badge"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
@@ -323,10 +323,10 @@ const Renderers = {
     const asaInfo = document.getElementById('asaServiceInfo');
     if (!cards || !panelInfo || !asaInfo) return;
 
-    const panelEnabled = !!(panelAutostart?.result?.enabled || panelAutostart?.result?.exists);
-    const panelState = panelAutostart?.result?.status || panelAutostart?.result?.state || (panelEnabled ? 'Installed' : 'Not installed');
+    const panelEnabled = !!(panelAutostart?.result?.enabled || panelAutostart?.result?.exists || panelAutostart?.result?.autoStartEnabled);
+    const panelState = panelAutostart?.result?.status || panelAutostart?.result?.state || panelAutostart?.result?.startMode || (panelEnabled ? 'Installed' : 'Not installed');
     const asaEnabled = !!(asaAutostart?.result?.autoStartEnabled || asaAutostart?.result?.exists);
-    const asaState = asaAutostart?.result?.status || asaAutostart?.result?.serviceName || (asaEnabled ? 'Installed' : 'Not installed');
+    const asaState = asaAutostart?.result?.status || asaAutostart?.result?.state || asaAutostart?.result?.serviceName || (asaEnabled ? 'Installed' : 'Not installed');
 
     cards.innerHTML = [
       { title: 'Panel-Dienst', text: panelEnabled ? `Aktiv · ${panelState}` : `Nicht aktiv · ${panelState}` },
