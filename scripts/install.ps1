@@ -13,7 +13,7 @@ $script:NodeCommand = $null
 $script:NpmCommand = $null
 $script:IsInstallPathUserProvided = $PSBoundParameters.ContainsKey('InstallPath')
 $script:InstallerScriptUrl = 'https://raw.githubusercontent.com/Ni883L/ark-asa-admin-panel/main/scripts/install.ps1'
-$script:InstallerVersion = '2026-03-28.1'
+$script:InstallerVersion = '2026-04-05.1'
 
 function T([string]$German, [string]$English) {
   if ($script:IsGerman) { return $German }
@@ -401,7 +401,15 @@ foreach ($dir in $dirs) {
   New-Item -ItemType Directory -Force -Path $dir | Out-Null
 }
 
-if ($CreateStartupTask) {
+$registerPanelService = $CreateStartupTask
+if (-not $registerPanelService) {
+  $registerAnswer = Read-Host (T "Panel-WinSW-Dienst jetzt registrieren? [J/n]" "Register Panel WinSW service now? [Y/n]")
+  if (-not $registerAnswer -or $registerAnswer.ToLowerInvariant() -in @('j', 'ja', 'y', 'yes')) {
+    $registerPanelService = $true
+  }
+}
+
+if ($registerPanelService) {
   try {
     powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-service-launcher.ps1') -Mode Install -InstallPath $InstallPath | Out-Null
     Write-Output (T "Panel-Dienstregistrierung wurde angestoßen." "Panel service registration was launched.")
@@ -416,11 +424,26 @@ $panelConnection = Resolve-PanelConnection $envSettings
 $defaultUrl = $panelConnection.Url
 $startAnswer = Read-Host (T "Panel jetzt direkt starten? [J/n]" "Start panel now? [Y/n]")
 if (-not $startAnswer -or $startAnswer.ToLowerInvariant() -in @('j', 'ja', 'y', 'yes')) {
-  $startResult = Start-PanelNow -InstallPath $InstallPath -NodeCommand $script:NodeCommand -PanelHost $panelConnection.Host -Port $panelConnection.Port
-  if ($startResult.PortOpen) {
-    Write-Output (T "Panel wurde gestartet (PID: $($startResult.Process.Id)). Port $($panelConnection.Port) ist erreichbar." "Panel started (PID: $($startResult.Process.Id)). Port $($panelConnection.Port) is reachable.")
+  if ($registerPanelService) {
+    Write-Output (T "Panel wird bevorzugt über den WinSW-Dienst gestartet." "Panel will be started primarily through the WinSW service.")
+    try {
+      powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-service.ps1') -Mode Start -InstallPath $InstallPath | Out-Null
+    } catch {
+      Write-Warning (T "Panel-Dienststart fehlgeschlagen, versuche direkten Panel-Start..." "Panel service start failed, trying direct panel start...")
+      $startResult = Start-PanelNow -InstallPath $InstallPath -NodeCommand $script:NodeCommand -PanelHost $panelConnection.Host -Port $panelConnection.Port
+      if ($startResult.PortOpen) {
+        Write-Output (T "Panel wurde gestartet (PID: $($startResult.Process.Id)). Port $($panelConnection.Port) ist erreichbar." "Panel started (PID: $($startResult.Process.Id)). Port $($panelConnection.Port) is reachable.")
+      } else {
+        Write-Warning (T "Panel-Prozess gestartet, aber Port $($panelConnection.Port) ist nicht erreichbar. Bitte pruefe mit 'cd '$InstallPath'; npm start'." "Panel process started, but port $($panelConnection.Port) is not reachable yet. Please verify with 'cd '$InstallPath'; npm start'.")
+      }
+    }
   } else {
-    Write-Warning (T "Panel-Prozess gestartet, aber Port $($panelConnection.Port) ist nicht erreichbar. Bitte pruefe mit 'cd '$InstallPath'; npm start'." "Panel process started, but port $($panelConnection.Port) is not reachable yet. Please verify with 'cd '$InstallPath'; npm start'.")
+    $startResult = Start-PanelNow -InstallPath $InstallPath -NodeCommand $script:NodeCommand -PanelHost $panelConnection.Host -Port $panelConnection.Port
+    if ($startResult.PortOpen) {
+      Write-Output (T "Panel wurde gestartet (PID: $($startResult.Process.Id)). Port $($panelConnection.Port) ist erreichbar." "Panel started (PID: $($startResult.Process.Id)). Port $($panelConnection.Port) is reachable.")
+    } else {
+      Write-Warning (T "Panel-Prozess gestartet, aber Port $($panelConnection.Port) ist nicht erreichbar. Bitte pruefe mit 'cd '$InstallPath'; npm start'." "Panel process started, but port $($panelConnection.Port) is not reachable yet. Please verify with 'cd '$InstallPath'; npm start'.")
+    }
   }
 }
 
