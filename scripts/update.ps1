@@ -240,7 +240,17 @@ Write-Output "minimal backup created: $backup"
 
 $panelConnection = Resolve-PanelConnection (Get-EnvSettings (Join-Path $InstallPath '.env'))
 try {
-  & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-restart.ps1') -InstallPath $InstallPath -Port 3000 | Out-Null
+  $panelServiceStatus = @{}
+  try {
+    $panelServiceStatus = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-service.ps1') -Mode Status -InstallPath $InstallPath | ConvertFrom-Json
+  } catch {}
+
+  if ($panelServiceStatus.exists) {
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-service.ps1') -Mode Restart -InstallPath $InstallPath | Out-Null
+  } else {
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $InstallPath 'scripts\panel-restart.ps1') -InstallPath $InstallPath -Port 3000 | Out-Null
+  }
+
   if (-not (Test-PanelReachable -Url $panelConnection.Url -TimeoutSeconds 25)) {
     throw "Panel nach Update nicht erreichbar: $($panelConnection.Url)"
   }

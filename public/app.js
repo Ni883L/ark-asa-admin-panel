@@ -776,7 +776,7 @@ const App = {
           }
           throw error;
         }
-        UI.setFeedback('Dienst-Registrierung läuft. Seite wird danach neu verbunden...', 'info');
+        UI.setFeedback('WinSW-Dienst-Registrierung läuft. Seite wird danach neu verbunden...', 'info');
         setTimeout(() => window.location.reload(), 8000);
       } catch (error) {
         UI.setFeedback(error.message, 'error');
@@ -788,12 +788,12 @@ const App = {
       if (Preferences.shouldRequirePassword() && !currentPassword) return;
       try {
         await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
-        UI.setFeedback('Panel-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
+        UI.setFeedback('Panel-WinSW-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
         setTimeout(() => window.location.reload(), 8000);
       } catch (error) {
         const message = String(error.message || '');
         if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
-          UI.setFeedback('Panel-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
+          UI.setFeedback('Panel-WinSW-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
           setTimeout(() => window.location.reload(), 8000);
           return;
         }
@@ -806,12 +806,12 @@ const App = {
       if (Preferences.shouldRequirePassword() && !currentPassword) return;
       try {
         await Api.request('/api/actions/asa-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
-        UI.setFeedback('ARK ASA Dienst wird neu registriert.', 'info');
+        UI.setFeedback('ARK ASA WinSW-Dienst wird neu registriert.', 'info');
         setTimeout(() => window.location.reload(), 8000);
       } catch (error) {
         const message = String(error.message || '');
         if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
-          UI.setFeedback('ARK ASA Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
+          UI.setFeedback('ARK ASA WinSW-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
           setTimeout(() => window.location.reload(), 8000);
           return;
         }
