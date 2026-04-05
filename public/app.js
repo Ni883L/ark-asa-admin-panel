@@ -329,14 +329,14 @@ const Renderers = {
     const asaState = asaAutostart?.result?.status || asaAutostart?.result?.serviceName || (asaEnabled ? 'Installed' : 'Not installed');
 
     cards.innerHTML = [
-      { title: 'Panel', text: 'Kein Windows-Dienst · Start über Panel-Neustart' },
+      { title: 'Panel-Dienst', text: panelEnabled ? `Aktiv · ${panelState}` : `Nicht aktiv · ${panelState}` },
       { title: 'ARK ASA Dienst', text: asaEnabled ? `Aktiv · ${asaState}` : `Nicht aktiv · ${asaState}` }
     ].map((item) => `<div class="summary-item"><strong>${item.title}</strong><div>${item.text}</div></div>`).join('');
 
     panelInfo.innerHTML = `
-      <div class="formatted-row"><strong>Status</strong><span>Nicht als Windows-Dienst aktiv</span></div>
-      <div class="formatted-row"><strong>Typ</strong><span>Direkter Panel-Start</span></div>
-      <div class="formatted-row"><strong>Hinweis</strong><span>Stabiler Fallback bis echter Wrapper eingebaut ist.</span></div>
+      <div class="formatted-row"><strong>Status</strong><span>${panelEnabled ? 'Aktiviert' : 'Nicht aktiviert'}</span></div>
+      <div class="formatted-row"><strong>Typ</strong><span>WinSW Windows-Dienst</span></div>
+      <div class="formatted-row"><strong>Dienstname</strong><span>${panelAutostart?.result?.serviceName || 'ArkAsaAdminPanel'}</span></div>
       <div class="formatted-row"><strong>Zustand</strong><span>${panelState}</span></div>
     `;
 
@@ -765,6 +765,7 @@ const App = {
         const enabled = document.getElementById('panelAutostartInput').checked;
         const asaEnabled = document.getElementById('asaAutostartInput').checked;
         try {
+          await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
           await Api.request('/api/actions/asa-autostart', { method: 'POST', body: JSON.stringify({ enabled: asaEnabled, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
         } catch (error) {
           const message = String(error.message || '');
@@ -783,14 +784,16 @@ const App = {
     });
 
     document.getElementById('repairPanelServiceBtn')?.addEventListener('click', async () => {
+      const currentPassword = await Actions.requestSensitivePassword('Panel-Dienst neu registrieren');
+      if (Preferences.shouldRequirePassword() && !currentPassword) return;
       try {
-        await Api.request('/api/actions/panel-restart', { method: 'POST', body: JSON.stringify({}) });
-        UI.setFeedback('Panel wird neu gestartet. Verbindung wird neu aufgebaut...', 'info');
+        await Api.request('/api/actions/panel-autostart', { method: 'POST', body: JSON.stringify({ enabled: true, currentPassword, requirePassword: Preferences.shouldRequirePassword() }) });
+        UI.setFeedback('Panel-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
         setTimeout(() => window.location.reload(), 8000);
       } catch (error) {
         const message = String(error.message || '');
         if (message.includes('Netzwerkfehler: API nicht erreichbar') || message.includes('Nicht angemeldet')) {
-          UI.setFeedback('Panel wird neu gestartet. Verbindung wird neu aufgebaut...', 'info');
+          UI.setFeedback('Panel-Dienst wird neu registriert. Verbindung wird neu aufgebaut...', 'info');
           setTimeout(() => window.location.reload(), 8000);
           return;
         }

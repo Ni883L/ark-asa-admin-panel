@@ -20,14 +20,58 @@ function Get-ServiceInfo {
   $wmi = if ($ServiceName) { Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue } else { $null }
   return @{
     ok = [bool]$ServiceName
-    exists = [bool]$service
-    status = if ($service) { $service.Status.ToString() } else { 'NotInstalled' }
+    exists = [bool]$wmi
+    status = if ($service) { $service.Status.ToString() } elseif ($wmi) { $wmi.State } else { 'NotInstalled' }
     autoStartEnabled = [bool]($wmi -and $wmi.StartMode -eq 'Auto')
     serviceName = $ServiceName
     displayName = if ($wmi) { $wmi.DisplayName } else { $DisplayName }
     installPath = $InstallPath
     binaryPath = if ($wmi) { $wmi.PathName } else { '' }
   }
+}
+
+function Get-WinswFiles {
+  $baseDir = Join-Path $InstallPath 'service-wrapper'
+  $exePath = Join-Path $baseDir 'ArkAsaServerService.exe'
+  $xmlPath = Join-Path $baseDir 'ArkAsaServerService.xml'
+  return @{ baseDir = $baseDir; exePath = $exePath; xmlPath = $xmlPath }
+}
+
+function Ensure-WinswBinary {
+  $files = Get-WinswFiles
+  New-Item -ItemType Directory -Force -Path $files.baseDir | Out-Null
+  $source = Join-Path (Split-Path -Parent $PSScriptRoot) 'third_party\winsw\WinSW-x64.exe'
+  if (-not (Test-Path $source)) {
+    throw "WinSW-Binary fehlt: $source"
+  }
+  Copy-Item -Path $source -Destination $files.exePath -Force
+  return $files
+}
+
+function Write-WinswConfig([string]$targetExe, [string]$arguments) {
+  $files = Ensure-WinswBinary
+  $logDir = Join-Path $InstallPath 'ShooterGame\Saved\Logs'
+  New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+  $xml = @"
+<service>
+  <id>$ServiceName</id>
+  <name>$DisplayName</name>
+  <description>ARK ASA Windows Service</description>
+  <executable>$targetExe</executable>
+  <arguments>$arguments</arguments>
+  <workingdirectory>$InstallPath</workingdirectory>
+  <logpath>$logDir</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+  <onfailure action="restart" delay="10 sec" />
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>15sec</stoptimeout>
+</service>
+"@
+  Set-Content -Path $files.xmlPath -Value $xml -Encoding UTF8
+  return $files
 }
 
 if ($Mode -eq 'Status') {
@@ -80,22 +124,28 @@ if ($Mode -eq 'Install') {
   $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   if ($existing) {
     try { Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue } catch {}
-    & sc.exe delete $ServiceName | Out-Null
-    Start-Sleep -Seconds 2
   }
-  $binaryPath = '"' + $AsaExe + '" ' + $CommandLine
-  & sc.exe create $ServiceName binPath= $binaryPath DisplayName= '"' + $DisplayName + '"' start= auto | Out-Null
-  & sc.exe description $ServiceName 'ARK Survival Ascended dedicated server' | Out-Null
-  Start-Service -Name $ServiceName
+  $files = Write-WinswConfig -targetExe $AsaExe -arguments $CommandLine
+  & $files.exePath uninstall | Out-Null
+  & $files.exePath install | Out-Null
+  Start-Sleep -Seconds 2
+  $serviceInfo = Get-ServiceInfo
+  if (-not $serviceInfo.exists) {
+    throw 'ARK ASA Dienst konnte über WinSW nicht erstellt werden.'
+  }
+  Start-Service -Name $ServiceName -ErrorAction Stop
   Write-Output (Get-ServiceInfo | ConvertTo-Json -Compress)
   exit 0
 }
 
 if ($Mode -eq 'Uninstall') {
+  $files = Get-WinswFiles
   $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   if ($existing) {
     try { Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue } catch {}
-    & sc.exe delete $ServiceName | Out-Null
+  }
+  if (Test-Path $files.exePath) {
+    & $files.exePath uninstall | Out-Null
   }
   Write-Output (Get-ServiceInfo | ConvertTo-Json -Compress)
   exit 0

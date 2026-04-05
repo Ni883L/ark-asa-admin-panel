@@ -308,32 +308,32 @@
                   <h3>Tasks & Dienste</h3>
                 </div>
               </div>
-              <div class="content-grid two-col">
+              <div class="content-grid three-col practical-grid">
                 <div class="card">
                   <h4>Geplante Tasks</h4>
                   <textarea id="tasksEditor" rows="12"></textarea>
                   <button id="saveTasksBtn">Tasks speichern</button>
                 </div>
-                <div class="card emphasis-card">
+                <div class="card emphasis-card span-2">
                   <h4>Dienst-Übersicht</h4>
-                  <div id="serviceStatusCards" class="summary-stack"></div>
-                  <div class="actions stack-actions">
+                  <div id="serviceStatusCards" class="summary-stack summary-grid"></div>
+                  <div class="actions wrap-actions">
                     <button id="saveAutostartBtn" type="button">Dienste anwenden</button>
-                    <button id="repairPanelServiceBtn" type="button">Panel neu starten</button>
+                    <button id="repairPanelServiceBtn" type="button">Panel-Dienst neu registrieren</button>
                     <button id="repairAsaServiceBtn" type="button">ARK ASA Dienst neu registrieren</button>
                   </div>
                 </div>
               </div>
-              <div class="content-grid two-col">
+              <div class="content-grid two-col practical-grid-wide">
                 <div class="card">
-                  <h4>Panel</h4>
-                  <label class="checkbox-row"><input id="panelAutostartInput" type="checkbox" disabled /> Windows-Dienst derzeit deaktiviert</label>
-                  <div id="panelServiceInfo" class="formatted-output"></div>
+                  <h4>Panel-Dienst</h4>
+                  <label class="checkbox-row"><input id="panelAutostartInput" type="checkbox" /> WinSW-Dienst aktivieren</label>
+                  <div id="panelServiceInfo" class="formatted-output compact-output"></div>
                 </div>
                 <div class="card">
                   <h4>ARK ASA Dienst</h4>
-                  <label class="checkbox-row"><input id="asaAutostartInput" type="checkbox" /> Windows-Dienst aktivieren</label>
-                  <div id="asaServiceInfo" class="formatted-output"></div>
+                  <label class="checkbox-row"><input id="asaAutostartInput" type="checkbox" /> WinSW-Dienst aktivieren</label>
+                  <div id="asaServiceInfo" class="formatted-output compact-output"></div>
                 </div>
               </div>
             </section>
