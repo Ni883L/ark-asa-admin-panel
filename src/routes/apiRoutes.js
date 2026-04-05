@@ -253,6 +253,18 @@ router.post('/actions/asa-service-action', handleRoute(async (req, res) => {
   res.json({ ok: true, result: await asaService.runAsaServiceAction(action) });
 }));
 
+router.post('/actions/asa-service-register', handleRoute(async (req, res) => {
+  authService.requireRole(req, ['admin']);
+  requireSensitiveActionAuth(req);
+  res.json({ ok: true, result: await asaService.runAsaServiceAction('Install') });
+}));
+
+router.post('/actions/asa-service-unregister', handleRoute(async (req, res) => {
+  authService.requireRole(req, ['admin']);
+  requireSensitiveActionAuth(req);
+  res.json({ ok: true, result: await asaService.runAsaServiceAction('Uninstall') });
+}));
+
 router.post('/actions/asa-update-check', handleRoute(async (req, res) => {
   authService.requireRole(req, ['admin']);
   const check = await asaService.checkForServerUpdate();
