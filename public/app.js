@@ -598,7 +598,8 @@ const App = {
     Renderers.renderGameSettingsHelp();
     const buildInfo = document.getElementById('buildInfo');
     if (buildInfo) {
-      buildInfo.textContent = `${bootstrapState.version || '?'} · ${bootstrapState.gitCommit || 'unknown'}`;
+      buildInfo.textContent = `v${bootstrapState.version || '?'} · ${bootstrapState.gitCommit || 'unknown'}`;
+      buildInfo.title = `Version ${bootstrapState.version || '?'} / Commit ${bootstrapState.gitCommit || 'unknown'}`;
     }
     await App.refreshDashboard();
   },

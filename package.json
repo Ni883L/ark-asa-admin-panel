@@ -1,6 +1,6 @@
 {
   "name": "ark-asa-admin-panel",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "private": true,
   "description": "Produktionsnahe Windows-Webverwaltung für ARK Survival Ascended Dedicated Server",
   "main": "src/server.js",
