@@ -299,7 +299,9 @@ async function runAsaServiceAction(action) {
   const elevatedActions = new Set(['Install', 'Uninstall', 'ElevateInstall', 'ElevateUninstall']);
   const scriptName = elevatedActions.has(action) ? 'asa-service-launcher.ps1' : 'asa-service.ps1';
   const mode = action === 'Install' ? 'Install' : action === 'Uninstall' ? 'Uninstall' : action;
-  const result = await powershell.run(scriptName, ['-Mode', mode, '-InstallPath', defaults.asa.root, '-AsaExe', defaults.asa.exePath, '-ServiceName', defaults.asa.serviceName, '-CommandLine', command]);
+  const serviceName = process.env.ASA_SERVER_SERVICE_NAME || defaults.asa.serviceName || 'ArkAscendedServer';
+  const displayName = 'ARK ASA Server';
+  const result = await powershell.run(scriptName, ['-Mode', mode, '-InstallPath', defaults.asa.root, '-AsaExe', defaults.asa.exePath, '-ServiceName', serviceName, '-DisplayName', displayName, '-CommandLine', command]);
   return parseJsonSafely(result.stdout, {});
 }
 
