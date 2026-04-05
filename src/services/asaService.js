@@ -239,23 +239,28 @@ async function openPanelFirewall(port) {
 }
 
 async function getPanelAutostartStatus() {
-  return {
-    ok: true,
-    exists: false,
-    enabled: false,
-    status: 'Nicht unterstützt',
-    serviceName: '',
-    type: 'detached-node'
-  };
+  try {
+    const result = await powershell.run('panel-service.ps1', ['-Mode', 'Status', '-InstallPath', process.cwd()]);
+    return parseJsonSafely(result.stdout, {});
+  } catch (error) {
+    throw normalizeScriptError(error, 'Panel-Dienststatus konnte nicht gelesen werden.');
+  }
 }
 
-async function setPanelAutostart(_enabled) {
-  throw new Error('Panel-Windows-Dienst ist derzeit deaktiviert. Bitte Panel manuell per panel-restart starten.');
+async function setPanelAutostart(enabled) {
+  try {
+    const mode = enabled ? 'Install' : 'Uninstall';
+    const result = await powershell.run('panel-service-launcher.ps1', ['-Mode', mode, '-InstallPath', process.cwd()]);
+    logger.audit('system', 'panel-autostart', { enabled: !!enabled, type: 'winsw-service', elevated: true, externalLauncher: true });
+    return parseJsonSafely(result.stdout, {});
+  } catch (error) {
+    throw normalizeScriptError(error, 'Panel-Dienst konnte nicht geändert werden.');
+  }
 }
 
 async function getAsaAutostartStatus() {
   try {
-    const result = await powershell.run('asa-service.ps1', ['-Mode', 'Status']);
+    const result = await powershell.run('asa-service.ps1', ['-Mode', 'Status', '-InstallPath', defaults.asa.root, '-AsaExe', defaults.asa.exePath]);
     return parseJsonSafely(result.stdout, {});
   } catch (error) {
     throw normalizeScriptError(error, 'ASA-Dienststatus konnte nicht gelesen werden.');
@@ -267,7 +272,7 @@ async function setAsaAutostart(enabled) {
     const profile = store.getActiveProfile();
     const command = getProfileCommand(profile).replace(/^"[^"]+"\s*/, '');
     const mode = enabled ? 'ElevateInstall' : 'ElevateUninstall';
-    const result = await powershell.run('asa-service.ps1', ['-Mode', mode, '-CommandLine', command]);
+    const result = await powershell.run('asa-service.ps1', ['-Mode', mode, '-InstallPath', defaults.asa.root, '-AsaExe', defaults.asa.exePath, '-CommandLine', command]);
     logger.audit('system', 'asa-autostart', { enabled: !!enabled, type: 'service', elevated: true, command, ports: profile?.ports });
     return parseJsonSafely(result.stdout, {});
   } catch (error) {
