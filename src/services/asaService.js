@@ -296,7 +296,10 @@ async function runPanelServiceAction(action) {
 async function runAsaServiceAction(action) {
   const profile = store.getActiveProfile();
   const command = getProfileCommand(profile).replace(/^"[^"]+"\s*/, '');
-  const result = await powershell.run('asa-service.ps1', ['-Mode', action, '-InstallPath', defaults.asa.root, '-AsaExe', defaults.asa.exePath, '-CommandLine', command]);
+  const elevatedActions = new Set(['Install', 'Uninstall', 'ElevateInstall', 'ElevateUninstall']);
+  const scriptName = elevatedActions.has(action) ? 'asa-service-launcher.ps1' : 'asa-service.ps1';
+  const mode = action === 'Install' ? 'Install' : action === 'Uninstall' ? 'Uninstall' : action;
+  const result = await powershell.run(scriptName, ['-Mode', mode, '-InstallPath', defaults.asa.root, '-AsaExe', defaults.asa.exePath, '-ServiceName', defaults.asa.serviceName, '-CommandLine', command]);
   return parseJsonSafely(result.stdout, {});
 }
 
