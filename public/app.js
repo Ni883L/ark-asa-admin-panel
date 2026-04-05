@@ -931,6 +931,9 @@ const App = {
             if (action === 'panel-update') {
               UI.setFeedback('Panel-Update erfolgreich. Seite wird neu geladen...', 'info');
               setTimeout(() => window.location.reload(), 4000);
+            } else if (action === 'asa-update') {
+              UI.setFeedback(result?.message || 'ASA-Dateien vollständig installiert/aktualisiert.', 'success');
+              await App.refreshDashboard();
             } else {
               UI.setFeedback(`Aktion '${action}' erfolgreich ausgeführt.`, 'success');
               await App.refreshDashboard();

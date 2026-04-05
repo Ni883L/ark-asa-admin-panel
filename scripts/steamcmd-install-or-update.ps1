@@ -59,4 +59,10 @@ if (-not (Test-Path $InstallDir)) {
 }
 
 & $SteamCmdPath +force_install_dir $InstallDir +login anonymous +app_update $AppId validate +quit
-Write-Output 'steamcmd update complete'
+
+$expectedExe = Join-Path $InstallDir 'ShooterGame\Binaries\Win64\ArkAscendedServer.exe'
+if (-not (Test-Path $expectedExe)) {
+  throw "SteamCMD meldete Abschluss, aber ASA_SERVER_EXE fehlt noch: $expectedExe"
+}
+
+Write-Output "steamcmd update complete: $expectedExe"

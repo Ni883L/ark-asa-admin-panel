@@ -267,7 +267,7 @@ router.post('/actions/asa-update', handleRoute(async (req, res) => {
   }
   const result = await asaService.installOrUpdateServer();
   await webhookService.notify('ASA-Update', 'Serverdateien wurden installiert/aktualisiert.');
-  res.json({ ok: true, ...result });
+  res.json({ ok: true, message: 'ASA-Dateien vollständig installiert/aktualisiert.', ...result });
 }));
 
 router.get('/backups', handleRoute(async (_req, res) => {
