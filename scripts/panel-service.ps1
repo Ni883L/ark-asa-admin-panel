@@ -43,22 +43,24 @@ function Get-ServiceInfo {
 
 function Get-WinswFiles {
   $baseDir = Join-Path $InstallPath 'runtime\service-wrapper'
-  $exePath = Join-Path $baseDir 'ArkAsaAdminPanelService.exe'
-  $xmlPath = Join-Path $baseDir 'ArkAsaAdminPanelService.xml'
+  $exePath = Join-Path $baseDir 'ArkAsaAdminPanel.exe'
+  $xmlPath = Join-Path $baseDir 'ArkAsaAdminPanel.xml'
   return @{ baseDir = $baseDir; exePath = $exePath; xmlPath = $xmlPath }
 }
 
-function Ensure-WinswStub {
+function Ensure-WinswBinary {
   $files = Get-WinswFiles
   New-Item -ItemType Directory -Force -Path $files.baseDir | Out-Null
-  if (-not (Test-Path $files.exePath)) {
-    Copy-Item -Path "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -Destination $files.exePath -Force
+  $source = Join-Path $InstallPath 'third_party\winsw\WinSW-x64.exe'
+  if (-not (Test-Path $source)) {
+    throw "WinSW-Binary fehlt: $source"
   }
+  Copy-Item -Path $source -Destination $files.exePath -Force
   return $files
 }
 
 function Write-WinswConfig([string]$nodePath, [string]$serverScript) {
-  $files = Ensure-WinswStub
+  $files = Ensure-WinswBinary
   $logDir = Join-Path $InstallPath 'runtime\logs'
   New-Item -ItemType Directory -Force -Path $logDir | Out-Null
   $xml = @"
@@ -74,6 +76,8 @@ function Write-WinswConfig([string]$nodePath, [string]$serverScript) {
     <sizeThreshold>10240</sizeThreshold>
     <keepFiles>8</keepFiles>
   </log>
+  <onfailure action="restart" delay="10 sec" />
+  <resetfailure>1 hour</resetfailure>
   <stoptimeout>15sec</stoptimeout>
 </service>
 "@
@@ -102,11 +106,12 @@ if ($Mode -eq 'Install') {
     try { Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue } catch {}
   }
   $files = Write-WinswConfig -nodePath $nodePath -serverScript $serverScript
+  & $files.exePath uninstall | Out-Null
   & $files.exePath install | Out-Null
   Start-Sleep -Seconds 2
   $serviceInfo = Get-ServiceInfo
   if (-not $serviceInfo.exists) {
-    throw 'Panel-Dienst konnte über den Service-Wrapper nicht erstellt werden.'
+    throw 'Panel-Dienst konnte über WinSW nicht erstellt werden.'
   }
   Start-Service -Name $ServiceName -ErrorAction Stop
   Write-Output (Get-ServiceInfo | ConvertTo-Json -Compress)
