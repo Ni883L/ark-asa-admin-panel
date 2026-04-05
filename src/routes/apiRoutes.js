@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { execFileSync } = require('child_process');
 const multer = require('multer');
 const defaults = require('../config/defaults');
 const authService = require('../services/authService');
@@ -80,11 +81,16 @@ router.get('/bootstrap', handleRoute(async (_req, res) => {
     .flat()
     .filter((entry) => entry && entry.family === 'IPv4' && !entry.internal)
     .map((entry) => entry.address);
+  let gitCommit = 'unknown';
+  try {
+    gitCommit = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: process.cwd(), encoding: 'utf8' }).trim() || 'unknown';
+  } catch (_error) {}
   res.json({
     ...wizard,
     appName: defaults.app.name,
     host: os.hostname(),
     version: require('../../package.json').version,
+    gitCommit,
     appBinding: {
       host: defaults.app.host,
       port: defaults.app.port,

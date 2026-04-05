@@ -596,6 +596,10 @@ const App = {
     UI.show('dashboardView');
     UI.setMainTab('overview');
     Renderers.renderGameSettingsHelp();
+    const buildInfo = document.getElementById('buildInfo');
+    if (buildInfo) {
+      buildInfo.textContent = `${bootstrapState.version || '?'} · ${bootstrapState.gitCommit || 'unknown'}`;
+    }
     await App.refreshDashboard();
   },
 

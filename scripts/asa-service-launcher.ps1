@@ -13,9 +13,10 @@ $logPath = Join-Path $env:TEMP 'asa-service-launcher.log'
 if (Test-Path $logPath) { Remove-Item $logPath -Force -ErrorAction SilentlyContinue }
 
 $tempScript = Join-Path $env:TEMP ("asa-service-elevated-" + [System.Guid]::NewGuid().ToString('N') + '.ps1')
+$escapedCommandLine = $CommandLine.Replace("'", "''")
 $tempContent = @"
 `$ErrorActionPreference = 'Stop'
-& '$scriptPath' -Mode '$Mode' -ServiceName '$ServiceName' -DisplayName '$DisplayName' -InstallPath '$InstallPath' -AsaExe '$AsaExe' -CommandLine '$CommandLine' *>> '$logPath'
+& '$scriptPath' -Mode '$Mode' -ServiceName '$ServiceName' -DisplayName '$DisplayName' -InstallPath '$InstallPath' -AsaExe '$AsaExe' -CommandLine '$escapedCommandLine' *>> '$logPath'
 "@
 Set-Content -Path $tempScript -Value $tempContent -Encoding UTF8
 
